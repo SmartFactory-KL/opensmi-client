@@ -39,39 +39,39 @@ if TYPE_CHECKING:
 _LOGGER = structlog.getLogger("open_smi.RemoteVariable")
 
 
-def ua_value_to_simple(value: Any) -> bool | bytes | int | float | str | None:
-    """Converts given value (from OPC UA typically) to a simple JavaScript-friendly data type to make
-    handling easier than complex types.
-    """
-    if value is None:
-        return None
-    if isinstance(
-        value,
-        (
-            bool,
-            bytes,
-            int,
-            float,
-            str,
-        ),
-    ):
-        return value
-    if isinstance(value, LocalizedText):
-        return value.Text
-    if isinstance(value, NodeId):
-        return value.to_string() if not value.is_null() else None
-    _LOGGER.warning("Unsupported value type, fallback to string", type=type(value))
-    return str(value)
-
-
-def ua_value_to_dto(value: Any) -> Any | dict[str, Any]:
-    if dataclasses.is_dataclass(value):  # handle generic dataclass types used by asyncua
-        return dataclasses.asdict(value)  # type: ignore
-    return ua_value_to_simple(value)
+# def ua_value_to_simple(value: Any) -> bool | bytes | int | float | str | None:
+#     """Convert given ``value`` (from OPC UA typically) to a simple JavaScript-friendly data type."""
+#     if value is None:
+#         return None
+#     if isinstance(
+#         value,
+#         (
+#             bool,
+#             bytes,
+#             int,
+#             float,
+#             str,
+#         ),
+#     ):
+#         return value
+#     if isinstance(value, LocalizedText):
+#         return value.Text
+#     if isinstance(value, NodeId):
+#         return value.to_string() if not value.is_null() else None
+#     _LOGGER.warning("Unsupported value type, fallback to string", type=type(value))
+#     return str(value)
+#
+#
+# def ua_value_to_dto(value: Any) -> Any | dict[str, Any]:
+#     if dataclasses.is_dataclass(value):  # handle generic dataclass types used by asyncua
+#         return dataclasses.asdict(value)  # type: ignore
+#     return ua_value_to_simple(value)
 
 
 @dataclasses.dataclass
 class TimestampedValue:
+    """A single value of `RemoteVariable` combined with the timestamp."""
+
     value: Any
     timestamp: datetime | None
 
@@ -108,7 +108,6 @@ class RemoteVariable(RemoteUaObject["RemoteVariableContainer"], UaDataChangeSubs
     async def _init(self) -> None:
         await super()._init()
 
-        # TODO read in container
         # Read all attributes we need at the same time
         (
             data_type_data_value,
@@ -305,7 +304,7 @@ class RemoteVariable(RemoteUaObject["RemoteVariableContainer"], UaDataChangeSubs
         ]
 
     async def update_from_data_value(self, value: DataValue | DataChangeNotif | None) -> None:
-        """Update both value and timestamp of this RemoteVariable from given data value or subscription callback data."""
+        """Update both value and timestamp from given data value or subscription callback data."""
         if value is None:
             return
         if isinstance(value, DataChangeNotif):
@@ -333,24 +332,25 @@ class RemoteVariable(RemoteUaObject["RemoteVariableContainer"], UaDataChangeSubs
 
         try:
             await write_value(self.ua_node, value)
-        except (BadUserAccessDenied, BadOutOfRange) as ex:
-            raise ex
+        except (BadUserAccessDenied, BadOutOfRange):
+            raise
         except UaStatusCodeError:
             try:
-                # TODO why is valid values not a list (at least for enums)?
                 index = list(self.valid_values.values()).index(value)
                 # enums always start with 0 -> key should be the index...
                 # but we are not only dealing with enums
                 key = list(self.valid_values.keys())[index]
                 await write_value(self.ua_node, key)
             except Exception as err:
-                raise RuntimeError(f"{value} is not a valid value (valid are: {self.valid_values}!") from err
+                msg = f"{value} is not a valid value (valid are: {self.valid_values}!"
+                raise RuntimeError(msg) from err
 
     @override
     async def ua_on_data_change(self, node: Node, val: Any, data: DataChangeNotif) -> None:
         await self.update_from_data_value(data)
 
-    def __str__(self):
+    def __str__(self) -> str:
+        """Return string representation of this variable."""
         ret_string = str(self.value)
         if self.unit is not None:
             ret_string += " " + (self.unit.DisplayName.Text or "<None>")
