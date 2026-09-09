@@ -6,7 +6,7 @@ build-backend = "setuptools.build_meta"
 name = "OpenSMI-Client"
 dynamic = ["version"]
 
-description = "TODO"
+description = "Python Client for Smart Machine Interfaces (Skill-based Production)."
 authors = [
     { name = "Carsten Harms", email = "Carsten.Harms@dfki.de" },
     { name = "Simon Jungbluth", email = "Simon.Jungbluth@smartfactory.de" },
@@ -36,10 +36,11 @@ classifiers = [
 requires-python = ">=3.11"
 
 dependencies = [
+    "asyncua~=2.0.1",
     "OpenSMI-Common>=0.1"
 ]
 
-[tool.uv.sources]
+[tool.uv.sources]  # TODO remove when published
 OpenSMI-Common = { path = "../open_smi_common", editable = true }
 
 [project.optional-dependencies]
