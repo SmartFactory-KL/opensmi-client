@@ -14,18 +14,18 @@ from typing import TYPE_CHECKING, Any
 from asyncua import ua
 from asyncua.common.node import Node
 from asyncua.common.subscription import DataChangeNotif
-from open_smi_common.protocols import UaEvent
-from open_smi_common.signal import Signal
-from open_smi_common.subscription_manager import UaDataChangeSubscriber, UaEventSubscriber
-from open_smi_common.ua_node_util import get_children_browse_names, get_type_definition
+from opensmi.core import Signal
+from opensmi.core.protocols import UaEvent
+from opensmi.core.subscription_manager import UaDataChangeSubscriber, UaEventSubscriber
+from opensmi.core.ua_node_util import get_children_browse_names, get_type_definition
 from typing_extensions import deprecated, override
 
-from open_smi_client.browse import BrowseFeature, BrowseRule, evaluate_browse_features
-from open_smi_client.dto import RemoteComponentDTO
-from open_smi_client.remote_method import RemoteMethod
-from open_smi_client.remote_skill import RemoteSkill
-from open_smi_client.remote_ua_object import RemoteUaObject
-from open_smi_client.remote_variable_container import (
+from opensmi.client.browse import BrowseFeature, BrowseRule, evaluate_browse_features
+from opensmi.client.dto import RemoteComponentDTO
+from opensmi.client.remote_method import RemoteMethod
+from opensmi.client.remote_skill import RemoteSkill
+from opensmi.client.remote_ua_object import RemoteUaObject
+from opensmi.client.remote_variable_container import (
     Attributes,
     Identification,
     Monitoring,
@@ -33,9 +33,9 @@ from open_smi_client.remote_variable_container import (
 )
 
 if TYPE_CHECKING:
-    from open_smi_client.remote_lock import RemoteLock
-    from open_smi_client.remote_resource import RemoteResource
-    from open_smi_client.remote_server import RemoteServer
+    from opensmi.client.remote_lock import RemoteLock
+    from opensmi.client.remote_resource import RemoteResource
+    from opensmi.client.remote_server import RemoteServer
 
 
 @dataclass(slots=True, frozen=True, kw_only=True)
@@ -175,7 +175,7 @@ class BaseRemoteComponent(RemoteUaObject["BaseRemoteComponent"], UaDataChangeSub
 
     async def _browse_lock(self, ua_node: Node) -> None:
         """Browse a single lock in given ``ua_node``."""
-        from open_smi_client.remote_lock import RemoteLock
+        from opensmi.client.remote_lock import RemoteLock
 
         lock = RemoteLock(server=self.server, parent=self)
         lock.ua_node = ua_node
@@ -222,7 +222,7 @@ class BaseRemoteComponent(RemoteUaObject["BaseRemoteComponent"], UaDataChangeSub
 
     async def _browse_resource(self, ua_node: Node, *, name: str) -> None:
         """Browse a single resource in given ``ua_node`` with ``name``."""
-        from open_smi_client.remote_resource import RemoteResource  # prevent circular import
+        from opensmi.client.remote_resource import RemoteResource  # prevent circular import
 
         try:
             resource = RemoteResource(

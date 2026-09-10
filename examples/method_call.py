@@ -9,7 +9,7 @@ First, it sets the module from the cold start up and then executes a method to s
 
 import asyncio
 
-from open_smi_client import RemoteServer
+from opensmi.client import RemoteServer
 
 
 async def main() -> None:

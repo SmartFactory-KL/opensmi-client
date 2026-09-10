@@ -12,16 +12,16 @@ from typing import TYPE_CHECKING
 
 from asyncua import ua
 from asyncua.common.node import Node
-from open_smi_common.ua_node_util import get_children_browse_names
+from opensmi.core.ua_node_util import get_children_browse_names
 from typing_extensions import override
 
-from open_smi_client.browse import BrowseFeature, BrowseRule
-from open_smi_client.dto import RemoteMachineDTO
-from open_smi_client.remote_component import BaseRemoteComponent
-from open_smi_client.remote_user import RemoteUser
+from opensmi.client.browse import BrowseFeature, BrowseRule
+from opensmi.client.dto import RemoteMachineDTO
+from opensmi.client.remote_component import BaseRemoteComponent
+from opensmi.client.remote_user import RemoteUser
 
 if TYPE_CHECKING:
-    from open_smi_client.remote_server import RemoteServer
+    from opensmi.client.remote_server import RemoteServer
 
 
 class RemoteMachine(BaseRemoteComponent):

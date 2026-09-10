@@ -8,9 +8,9 @@ import asyncio
 
 import structlog
 from asyncua.ua.uaerrors import BadLocked
-from open_smi_common import AsyncTaskMixin
+from opensmi.core import AsyncTaskMixin
 
-from open_smi_client.remote_lock import RemoteLock
+from opensmi.client.remote_lock import RemoteLock
 
 
 class AutoLock(AsyncTaskMixin):

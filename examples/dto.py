@@ -10,7 +10,7 @@ from pathlib import PurePosixPath
 
 from rich.pretty import pprint
 
-from open_smi_client import RemoteServer
+from opensmi.client import RemoteServer
 
 
 def _json_serialize(obj: object) -> str:

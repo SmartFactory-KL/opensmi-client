@@ -6,8 +6,8 @@
 
 from __future__ import annotations
 
-from open_smi_client.dto import RemoteResourceDTO
-from open_smi_client.remote_component import BaseRemoteComponent
+from opensmi.client.dto import RemoteResourceDTO
+from opensmi.client.remote_component import BaseRemoteComponent
 
 
 class RemoteResource(BaseRemoteComponent):

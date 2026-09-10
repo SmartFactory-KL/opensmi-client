@@ -37,11 +37,11 @@ requires-python = ">=3.11"
 
 dependencies = [
     "asyncua~=2.0.1",
-    "OpenSMI-Common>=0.1"
+    "OpenSMI-Core>=0.1"
 ]
 
 [tool.uv.sources]  # TODO remove when published
-OpenSMI-Common = { path = "../open_smi_common", editable = true }
+OpenSMI-Core = { path = "../open_smi_common", editable = true }
 
 [project.optional-dependencies]
 rich = [
@@ -69,6 +69,7 @@ include-package-data = true
 
 [tool.setuptools.packages.find]
 where = ["src"]
+namespaces = true
 # exclude = ["tests", "doc*", "examples"]
 
 [tool.ruff]
@@ -155,7 +156,7 @@ docstring-code-format = true
 docstring-code-line-length = "dynamic"
 
 [tool.mypy]
-packages = "src/open_smi_client"
+packages = "src/opensmi/client"
 
 warn_unused_configs = true
 pretty = true
@@ -169,7 +170,7 @@ executionEnvironments = [{ root = "src" }]
 
 [tool.pydoctor]
 project-name = "OpenSMI Client"
-add-package = ["src/open_smi_client"]
+add-package = ["src/opensmi/client"]
 docformat = "restructuredtext"
 theme = "readthedocs"
 # verbose = 1

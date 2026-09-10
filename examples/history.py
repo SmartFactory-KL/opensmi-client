@@ -6,7 +6,7 @@ import asyncio
 
 from rich import print
 
-from open_smi_client import RemoteServer, RemoteVariable
+from opensmi.client import RemoteServer, RemoteVariable
 
 
 async def main() -> None:

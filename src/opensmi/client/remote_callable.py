@@ -14,20 +14,20 @@ from typing import TYPE_CHECKING, Any
 from asyncua import ua
 from asyncua.common.node import Node
 from asyncua.ua import NodeId
-from open_smi_common.ua_node_util import get_children_browse_names
+from opensmi.core.ua_node_util import get_children_browse_names
 from typing_extensions import deprecated, override
 
-from open_smi_client.browse import BrowseFeature, BrowseRule, evaluate_browse_features
-from open_smi_client.remote_ua_object import RemoteUaObject
-from open_smi_client.remote_variable_container import (
+from opensmi.client.browse import BrowseFeature, BrowseRule, evaluate_browse_features
+from opensmi.client.remote_ua_object import RemoteUaObject
+from opensmi.client.remote_variable_container import (
     FinalResultData,
     Monitoring,
     ParameterSet,
 )
 
 if TYPE_CHECKING:
-    from open_smi_client.remote_component import BaseRemoteComponent
-    from open_smi_client.remote_server import RemoteServer
+    from opensmi.client.remote_component import BaseRemoteComponent
+    from opensmi.client.remote_server import RemoteServer
 
 
 class RemoteCallable(RemoteUaObject["BaseRemoteComponent"]):

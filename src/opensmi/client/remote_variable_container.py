@@ -10,15 +10,15 @@ from typing import TYPE_CHECKING, Any, Generic, TypeVar
 
 from asyncua import ua
 from asyncua.common.node import Node
-from open_smi_common.ua_node_util import get_children_browse_names
+from opensmi.core.ua_node_util import get_children_browse_names
 from typing_extensions import override
 
-from open_smi_client.dto import RemoteVariableDTO
-from open_smi_client.remote_ua_object import RemoteUaObject
-from open_smi_client.remote_variable import RemoteVariable
+from opensmi.client.dto import RemoteVariableDTO
+from opensmi.client.remote_ua_object import RemoteUaObject
+from opensmi.client.remote_variable import RemoteVariable
 
 if TYPE_CHECKING:
-    from open_smi_client.remote_server import RemoteServer
+    from opensmi.client.remote_server import RemoteServer
 
 _ParentType = TypeVar("_ParentType", bound="RemoteUaObject")
 

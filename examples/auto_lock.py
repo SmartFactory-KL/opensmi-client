@@ -5,7 +5,7 @@
 import asyncio
 import contextlib
 
-from open_smi.client import AutoLock, RemoteServer
+from opensmi.client import AutoLock, RemoteServer
 
 
 async def main() -> None:

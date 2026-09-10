@@ -28,16 +28,16 @@ from asyncua.ua.uaerrors import BadUserAccessDenied
 from cryptography import x509
 from cryptography.hazmat._oid import ExtendedKeyUsageOID
 from cryptography.hazmat.primitives import serialization
-from open_smi_common.base_server import BaseServer
-from open_smi_common.nodesets import MachineryNodeIds
-from open_smi_common.signal import Signal
-from open_smi_common.subscription_manager import SubscriptionManager, UaDataChangeSubscriber
-from open_smi_common.ua_node_util import get_children_browse_names
+from opensmi.core import Signal
+from opensmi.core.base_server import BaseServer
+from opensmi.core.nodesets import MachineryNodeIds
+from opensmi.core.subscription_manager import SubscriptionManager, UaDataChangeSubscriber
+from opensmi.core.ua_node_util import get_children_browse_names
 from typing_extensions import override
 
-from open_smi_client.browse import DEFAULT_BROWSE_RULE, BrowseFeature, BrowseRule, evaluate_browse_features
-from open_smi_client.remote_machine import RemoteMachine
-from open_smi_client.remote_ua_object import RemoteUaObject
+from opensmi.client.browse import DEFAULT_BROWSE_RULE, BrowseFeature, BrowseRule, evaluate_browse_features
+from opensmi.client.remote_machine import RemoteMachine
+from opensmi.client.remote_ua_object import RemoteUaObject
 
 
 class RemoteServerStatus(Enum):

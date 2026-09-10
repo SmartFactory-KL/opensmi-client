@@ -4,11 +4,11 @@
 
 import asyncio
 
-from open_smi_common import LogFormat, setup_logging
+from opensmi.core import LogFormat, setup_logging
 from rich.pretty import pprint
 
-from open_smi_client import RemoteComponent, RemoteServer
-from open_smi_client.browse import DEFAULT_BROWSE_RULE
+from opensmi.client import RemoteComponent, RemoteServer
+from opensmi.client.browse import DEFAULT_BROWSE_RULE
 
 setup_logging(log_levels={"sf": "INFO"}, log_format=LogFormat.KEY_VALUE)
 

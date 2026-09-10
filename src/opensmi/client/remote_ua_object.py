@@ -10,14 +10,14 @@ from typing import TYPE_CHECKING, Generic, TypeVar
 
 from asyncua import ua
 from asyncua.common.node import Node
-from open_smi_common.base_ua_object import BaseUaObject
-from open_smi_common.lifecycle_mixin import LifecycleMixin, lifecycle
-from open_smi_common.ua_node_util import get_type_definition
+from opensmi.core.base_ua_object import BaseUaObject
+from opensmi.core.lifecycle_mixin import LifecycleMixin, lifecycle
+from opensmi.core.ua_node_util import get_type_definition
 
-from open_smi_client.browse import DEFAULT_BROWSE_RULE, BrowseRule
+from opensmi.client.browse import DEFAULT_BROWSE_RULE, BrowseRule
 
 if TYPE_CHECKING:
-    from open_smi_client.remote_server import RemoteServer
+    from opensmi.client.remote_server import RemoteServer
 
 _ParentType = TypeVar("_ParentType", bound="RemoteUaObject")
 

@@ -16,20 +16,19 @@ from asyncua.common.methods import call_method
 from asyncua.common.node import Node
 from asyncua.common.subscription import DataChangeNotif
 from asyncua.ua import LocalizedText
-from open_smi_common.enums import SkillState
-from open_smi_common.errors import SkillHaltedError, SkillNotSuspendableError
-from open_smi_common.signal import Signal
-from open_smi_common.subscription_manager import UaDataChangeSubscriber
-from open_smi_common.ua_node_util import get_children_browse_names, get_type_definition
+from opensmi.core import Signal, SkillState
+from opensmi.core.errors import SkillHaltedError, SkillNotSuspendableError
+from opensmi.core.subscription_manager import UaDataChangeSubscriber
+from opensmi.core.ua_node_util import get_children_browse_names, get_type_definition
 from typing_extensions import override
 
-from open_smi_client.browse import BrowseRule
-from open_smi_client.dto import RemoteSkillDTO
-from open_smi_client.remote_callable import RemoteCallable
+from opensmi.client.browse import BrowseRule
+from opensmi.client.dto import RemoteSkillDTO
+from opensmi.client.remote_callable import RemoteCallable
 
 if TYPE_CHECKING:
-    from open_smi_client.remote_component import BaseRemoteComponent
-    from open_smi_client.remote_server import RemoteServer
+    from opensmi.client.remote_component import BaseRemoteComponent
+    from opensmi.client.remote_server import RemoteServer
 
 
 @dataclass(slots=True)

@@ -4,7 +4,7 @@
 
 import asyncio
 
-from open_smi_client import BaseRemoteComponent, NotificationEvent, RemoteServer
+from opensmi.client import BaseRemoteComponent, NotificationEvent, RemoteServer
 
 
 async def main():

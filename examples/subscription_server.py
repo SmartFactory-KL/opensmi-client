@@ -12,7 +12,7 @@ import asyncio
 import contextlib
 import datetime
 
-from open_smi_client import RemoteServer, RemoteServerStatus
+from opensmi.client import RemoteServer, RemoteServerStatus
 
 
 async def main() -> None:

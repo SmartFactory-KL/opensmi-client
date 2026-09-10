@@ -9,9 +9,9 @@ First, it sets the module from the cold start up and then executes a skill to sh
 
 import asyncio
 
-from open_smi_common import SkillState
+from opensmi.core import SkillState
 
-from open_smi_client import RemoteServer
+from opensmi.client import RemoteServer
 
 
 async def main():

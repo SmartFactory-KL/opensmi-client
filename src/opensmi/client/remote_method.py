@@ -13,8 +13,8 @@ from asyncua import ua
 from asyncua.common.node import Node
 from typing_extensions import override
 
-from open_smi_client.dto import RemoteCallableDTO
-from open_smi_client.remote_callable import RemoteCallable
+from opensmi.client.dto import RemoteCallableDTO
+from opensmi.client.remote_callable import RemoteCallable
 
 
 class RemoteMethod(RemoteCallable):
