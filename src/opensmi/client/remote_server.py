@@ -30,7 +30,6 @@ from cryptography.hazmat._oid import ExtendedKeyUsageOID
 from cryptography.hazmat.primitives import serialization
 from opensmi.core import Signal
 from opensmi.core.base_server import BaseServer
-from opensmi.core.nodesets import MachineryNodeIds
 from opensmi.core.subscription_manager import SubscriptionManager, UaDataChangeSubscriber
 from opensmi.core.ua_node_util import get_children_browse_names
 from typing_extensions import override
@@ -277,11 +276,10 @@ class RemoteServer(BaseServer[RemoteUaObject], UaDataChangeSubscriber):
 
     async def _browse_machines(self) -> None:
         """Iterate through all machines."""
-        namespace_index = self.ua_get_namespace_index(MachineryNodeIds.URI)
         ua_module_set = self._ua_client.get_node(
             ua.NodeId(
                 Identifier=ua.Int32(1001),  # Machines
-                NamespaceIndex=namespace_index,
+                NamespaceIndex=self.ua_get_namespace_index("http://opcfoundation.org/UA/Machinery/"),
             ),
         )
 
