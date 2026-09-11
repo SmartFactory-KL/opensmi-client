@@ -89,7 +89,7 @@ class BaseRemoteComponent(RemoteUaObject["BaseRemoteComponent"], UaDataChangeSub
         self._current_state: str = "Unknown"
         self._ua_current_state: Node | None = None
 
-        self.lock: RemoteLock | None = None
+        self._lock: RemoteLock | None = None
 
         self.identification = Identification(parent=self, server=server)
         self.monitoring = Monitoring(parent=self, server=server)
@@ -415,6 +415,11 @@ class BaseRemoteComponent(RemoteUaObject["BaseRemoteComponent"], UaDataChangeSub
 
 class RemoteComponent(BaseRemoteComponent):
     """The remote interface for a server-side `BaseComponent`."""
+
+    @property
+    def lock(self) -> RemoteLock | None:
+        """Return the remote lock instance if it exists. Is optional for components."""
+        return self._lock
 
     def dto(self) -> RemoteComponentDTO:
         """Return the data transfer object."""

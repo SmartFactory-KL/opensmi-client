@@ -15,6 +15,7 @@ from asyncua.common.node import Node
 from opensmi.core.ua_node_util import get_children_browse_names
 from typing_extensions import override
 
+from opensmi.client import RemoteLock
 from opensmi.client.browse import BrowseFeature, BrowseRule
 from opensmi.client.dto import RemoteMachineDTO
 from opensmi.client.remote_component import BaseRemoteComponent
@@ -45,6 +46,12 @@ class RemoteMachine(BaseRemoteComponent):
         )
 
         self._users: list[RemoteUser] = []
+
+    @property
+    def lock(self) -> RemoteLock:
+        """Return the remote lock instance. Is mandatory for machines."""
+        assert self._lock is not None
+        return self._lock
 
     def dto(self) -> RemoteMachineDTO:
         """Return the data transfer object."""
