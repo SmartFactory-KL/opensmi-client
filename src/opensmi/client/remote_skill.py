@@ -164,20 +164,17 @@ class RemoteSkill(RemoteCallable, UaDataChangeSubscriber):
             msg = f"Skill '{self.name}' is not suspendable!"
             raise SkillNotSuspendableError(msg) from None
 
-    async def wait_for_state(self, target_state: SkillState, timeout: float | None = 60.0) -> None:
+    async def wait_for_state(self, target_state: SkillState) -> None:
         """Block until the skill either reached the given state or was halted. Given timeout is in seconds."""
         start_state = self.current_state
 
-        async def _wait():
-            while True:
-                if self.current_state == target_state:
-                    break
-                if self.current_state == SkillState.HALTED and start_state != SkillState.HALTED:
-                    msg = f"Skill '{self.name}' halted while waiting for state '{target_state.name}'!"
-                    raise SkillHaltedError(msg)
-                await asyncio.sleep(0.1)
-
-        await asyncio.wait_for(_wait(), timeout)
+        while True:
+            if self.current_state == target_state:
+                break
+            if self.current_state == SkillState.HALTED and start_state != SkillState.HALTED:
+                msg = f"Skill '{self.name}' halted while waiting for state '{target_state.name}'!"
+                raise SkillHaltedError(msg)
+            await asyncio.sleep(0.1)
 
     async def _handle_state_change(self, val: str | LocalizedText) -> None:
         try:
