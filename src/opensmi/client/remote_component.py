@@ -180,7 +180,7 @@ class BaseRemoteComponent(RemoteUaObject["BaseRemoteComponent"], UaDataChangeSub
         lock = RemoteLock(server=self.server, parent=self)
         lock.ua_node = ua_node
         await asyncio.gather(lock.init(), lock.ua_read_type(), return_exceptions=True)
-        self.lock = lock
+        self._lock = lock
 
     async def _browse_component(self, ua_node: Node, *, name: str) -> None:
         """Browse a single component in given ``ua_node`` with ``name``."""

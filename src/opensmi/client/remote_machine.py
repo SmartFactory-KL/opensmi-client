@@ -15,13 +15,13 @@ from asyncua.common.node import Node
 from opensmi.core.ua_node_util import get_children_browse_names
 from typing_extensions import override
 
-from opensmi.client import RemoteLock
 from opensmi.client.browse import BrowseFeature, BrowseRule
 from opensmi.client.dto import RemoteMachineDTO
 from opensmi.client.remote_component import BaseRemoteComponent
 from opensmi.client.remote_user import RemoteUser
 
 if TYPE_CHECKING:
+    from opensmi.client.remote_lock import RemoteLock
     from opensmi.client.remote_server import RemoteServer
 
 
