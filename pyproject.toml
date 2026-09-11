@@ -135,6 +135,7 @@ author = "OpenSMI Contributors"
 
 [tool.ruff.lint.per-file-ignores]
 "tests/**" = ["ANN", "D", "T", "SLF001"]
+"examples/**" = ["D", "T"]
 
 
 [tool.ruff.format]
