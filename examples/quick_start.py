@@ -20,9 +20,8 @@ async def main() -> None:
         await machine.lock.init_lock()
 
         skill = machine.skill_set["ExampleSkill"]
-        print(skill.current_state)
         # reset the Skill if necessary
-        if skill.current_state != SkillState.READY:
+        if await skill.read_current_state() != SkillState.READY:
             await skill.reset()
             await skill.wait_for_state(SkillState.READY)
 

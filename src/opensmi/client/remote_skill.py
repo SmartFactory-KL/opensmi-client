@@ -43,6 +43,18 @@ class _RemoteSkillUaNodes:
     suspend: ua.NodeId | None = None
 
 
+def _parse_state(val: str | LocalizedText) -> SkillState:
+    try:
+        state_str: str = val.Text  # type: ignore
+    except AttributeError:
+        # some servers ignore the node-set datatype specification and use normal strings instead...
+        state_str = str(val)
+
+    # assume the worst/safest state
+    new_state = SkillState.HALTED if not state_str else SkillState[state_str.upper()]
+    return new_state
+
+
 class RemoteSkill(RemoteCallable, UaDataChangeSubscriber):
     """The remote interface for a server-side `BaseSkill`."""
 
@@ -169,21 +181,14 @@ class RemoteSkill(RemoteCallable, UaDataChangeSubscriber):
 
     async def _handle_state_change(self, val: str | LocalizedText) -> None:
         try:
-            state_str: str = val.Text  # type: ignore
-        except AttributeError:
-            # some servers ignore the node-set datatype specification and use normal strings instead...
-            state_str = str(val)
-
-        try:
-            # assume the worst/safest state
-            new_state = SkillState.HALTED if state_str is None else SkillState[state_str.upper()]
+            new_state = _parse_state(val)
             if new_state == self._current_state:
                 return
 
             self._current_state = new_state
             await self.state_changed.send(self, self._current_state)
-        except KeyError:  #
-            self.logger.warning("Received unknown state, ignoring!", state_str=state_str)
+        except KeyError:
+            self.logger.warning("Received unknown state value, ignoring!", state=val)
 
     @override
     async def ua_on_data_change(self, node: Node, val: Any, data: DataChangeNotif) -> None:  # type: ignore
@@ -194,6 +199,11 @@ class RemoteSkill(RemoteCallable, UaDataChangeSubscriber):
     def current_state(self) -> SkillState:
         """Cached current state of the remote skill."""
         return self._current_state
+
+    async def read_current_state(self) -> SkillState:
+        """Read the current state of the remote skill."""
+        ua_value = await self._ua_nodes.current_state.read_value()
+        return _parse_state(ua_value)
 
     @override
     async def ua_read_type(self) -> str:
