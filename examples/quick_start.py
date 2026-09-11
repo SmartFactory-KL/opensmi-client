@@ -22,21 +22,18 @@ async def main() -> None:
         skill = machine.skill_set["ExampleSkill"]
         # reset the Skill if necessary
         if await skill.read_current_state() != SkillState.READY:
-            await skill.reset()
-            await skill.wait_for_state(SkillState.READY)
+            await skill.reset(wait_for=SkillState.READY)
 
         # bulk write the parameters
         await skill.parameter_set.write_all({"x": 5, "y": 10})
 
         # start the skill and wait for completion
-        await skill.start()
-        await skill.wait_for_state(SkillState.COMPLETED)
+        await skill.start(wait_for=SkillState.COMPLETED)
 
         # retrieve the results before resetting
         print("results:", await skill.final_result_data.read_all())
 
-        await skill.reset()
-        await skill.wait_for_state(SkillState.READY)
+        await skill.reset(wait_for=SkillState.READY)
 
 
 if __name__ == "__main__":

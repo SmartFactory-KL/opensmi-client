@@ -144,22 +144,30 @@ class RemoteSkill(RemoteCallable, UaDataChangeSubscriber):
         """Indicates whether the skill is suspendable."""
         return self._ua_nodes.suspend is not None
 
-    async def start(self) -> None:
+    async def start(self, wait_for: SkillState | None = None) -> None:
         """Call the start method on the remote skill. User is responsible for handling any errors."""
         await call_method(self._ua_nodes.state_machine, self._ua_nodes.start)
+        if wait_for:
+            await self.wait_for_state(target_state=wait_for)
 
-    async def reset(self) -> None:
+    async def reset(self, *, wait_for: SkillState | None = None) -> None:
         """Call the reset method on the remote skill. User is responsible for handling any errors."""
         await call_method(self._ua_nodes.state_machine, self._ua_nodes.reset)
+        if wait_for:
+            await self.wait_for_state(target_state=wait_for)
 
-    async def halt(self) -> None:
+    async def halt(self, wait_for: SkillState | None = None) -> None:
         """Call the halt method on the remote skill. User is responsible for handling any errors."""
         await call_method(self._ua_nodes.state_machine, self._ua_nodes.halt)
+        if wait_for:
+            await self.wait_for_state(target_state=wait_for)
 
-    async def suspend(self) -> None:
+    async def suspend(self, wait_for: SkillState | None = None) -> None:
         """Call the suspend method on the remote skill. User is responsible for handling any errors."""
         if self._ua_nodes.suspend is not None:
             await call_method(self._ua_nodes.state_machine, self._ua_nodes.suspend)
+            if wait_for:
+                await self.wait_for_state(target_state=wait_for)
         else:
             msg = f"Skill '{self.name}' is not suspendable!"
             raise SkillNotSuspendableError(msg) from None
