@@ -6,7 +6,7 @@ build-backend = "setuptools.build_meta"
 name = "OpenSMI-Client"
 dynamic = ["version"]
 readme = "README.md"
-description = "Asyncronous Python client for interacting with Smart Machine Interface-compliant OPC UA servers."
+description = "Asynchronous Python client for interacting with Smart Machine Interface-compliant OPC UA servers."
 authors = [
     { name = "Carsten Harms", email = "Carsten.Harms@dfki.de" },
     { name = "Simon Jungbluth", email = "Simon.Jungbluth@smartfactory.de" },
