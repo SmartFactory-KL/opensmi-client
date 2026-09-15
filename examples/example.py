@@ -1,6 +1,6 @@
-# SPDX-FileCopyrightText: 2026 The Authors
+# SPDX-FileCopyrightText: 2026 OpenSMI Contributors
 #
-# SPDX-License-Identifier: MIT
+# SPDX-License-Identifier: CC0-1.0
 
 """This example connects to the local dummy server using the "production" config, started separately (run_dummy.py).
 

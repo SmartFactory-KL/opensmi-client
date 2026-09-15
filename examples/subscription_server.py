@@ -1,6 +1,6 @@
-# SPDX-FileCopyrightText: 2026 The Authors
+# SPDX-FileCopyrightText: 2026 OpenSMI Contributors
 #
-# SPDX-License-Identifier: MIT
+# SPDX-License-Identifier: CC0-1.0
 
 """This example connects to the local dummy server, started separately (e.g. run_dummy.py).
 Change the URL and credentials to connect to any other Skill node set v3/v4 compatible server.

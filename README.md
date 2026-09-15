@@ -1,3 +1,8 @@
+<!--
+SPDX-FileCopyrightText: 2026 OpenSMI Contributors
+SPDX-License-Identifier: MIT
+-->
+
 # OpenSMI Client
 
 **OpenSMI Client** is the client half of the OpenSMI framework: a Python library for connecting to **any** SMI-compliant
@@ -72,7 +77,11 @@ code written against **OpenSMI Client** should keep working across information-m
 
 ## License
 
-[MIT](LICENSES/MIT.txt)
+The library itself is licensed under the [MIT License](LICENSES/MIT.txt).
+
+Example code contained in the [examples](examples) directory is dedicated to the public domain under
+the [CC0 1.0 Universal license](LICENSES/CC0-1.0.txt).
+
 
 ---
 

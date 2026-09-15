@@ -1,3 +1,6 @@
+# SPDX-FileCopyrightText: 2026 OpenSMI Contributors
+# SPDX-License-Identifier: CC0-1.0
+
 *.pyc
 /.idea
 /.vs
@@ -6,7 +9,6 @@
 /dist
 *.log
 /build
-/tools/UNECE_to_OPCUA.csv
 /.venv/
 /uv.lock
 /*.xml
