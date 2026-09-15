@@ -25,7 +25,8 @@ browse once to locate a machine, then operate on it and its sub-objects using kn
 ## Requirements
 
 - Python 3.11+
-- An SMI-compliant OPC UA server to connect to (e.g. one built with **OpenSMI-Server**)
+- An SMI-compliant OPC UA server to connect to (e.g. one built with
+  [**OpenSMI-Server**](https://github.com/SmartFactory-KL/opensmi-server))
 
 ## Installation
 
