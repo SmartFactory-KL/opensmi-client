@@ -3,6 +3,11 @@ SPDX-FileCopyrightText: 2026 OpenSMI Contributors
 SPDX-License-Identifier: MIT
 -->
 
+[![Docs](https://img.shields.io/badge/docs-online-blue)](https://smartfactory-kl.github.io/opensmi-client)
+[![PyPI version](https://img.shields.io/pypi/v/opensmi-client.svg)](https://pypi.org/project/opensmi-client/)
+[![Python versions](https://img.shields.io/pypi/pyversions/opensmi-client.svg)](https://pypi.org/project/opensmi-client/)
+[![License](https://img.shields.io/badge/license-MIT-blue)](LICENSE)
+
 # OpenSMI Client
 
 **OpenSMI Client** is the client half of the OpenSMI framework: a Python library for connecting to **any** SMI-compliant
