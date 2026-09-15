@@ -42,9 +42,6 @@ dependencies = [
     "OpenSMI-Core>=0.1"
 ]
 
-[tool.uv.sources]  # TODO remove when published
-OpenSMI-Core = { path = "../open_smi_common", editable = true }
-
 [project.optional-dependencies]
 rich = [
     "rich>=15.0.0", # colorful logging; transitive deps: markdown-it-py, mdurl & pygments
