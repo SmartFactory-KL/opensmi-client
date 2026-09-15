@@ -1,7 +1,7 @@
 # OpenSMI Client
 
 **OpenSMI Client** is the client half of the OpenSMI framework: a Python library for connecting to **any** SMI-compliant
-OPC-UA server — generically discovering its machines, components and skills, and
+OPC UA server — generically discovering its machines, components and skills, and
 interacting with them without needing a generated, server-specific client.
 
 Since SMI defines a standardized information model, **OpenSMI Client** doesn't need to know your server's specific
@@ -15,12 +15,12 @@ browse once to locate a machine, then operate on it and its sub-objects using kn
 ## Requirements
 
 - Python 3.11+
-- An SMI-compliant OPC-UA server to connect to (e.g. one built with **OpenSMI-Server**)
+- An SMI-compliant OPC UA server to connect to (e.g. one built with **OpenSMI-Server**)
 
 ## Installation
 
 ```bash
-pip install OpenSMI-Client
+pip install opensmi-client
 ```
 
 ## Quick Start
@@ -66,13 +66,13 @@ computed sum.
 
 ## Project Status
 
-The client API is stable and follows [semantic versioning](https://semver.org/). Changes to the underlying OPC-UA
+The client API is stable and follows [semantic versioning](https://semver.org/). Changes to the underlying OPC UA
 information model are incorporated as needed but kept backwards compatible, and do not change the Python API —
 code written against **OpenSMI Client** should keep working across information-model revisions.
 
 ## License
 
-MIT — see [here](LICENSES/MIT.txt).
+[MIT](LICENSES/MIT.txt)
 
 ---
 
