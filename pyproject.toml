@@ -38,15 +38,15 @@ classifiers = [
     "Typing :: Typed"
 ]
 
-[project.urls]
-Repository = "https://github.com/SmartFactory-KL/opensmi-client"
-
 requires-python = ">=3.11"
 
 dependencies = [
     "asyncua~=2.0.1",
     "OpenSMI-Core>=0.1"
 ]
+
+[project.urls]
+Repository = "https://github.com/SmartFactory-KL/opensmi-client"
 
 [project.optional-dependencies]
 rich = [
