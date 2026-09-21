@@ -3,6 +3,8 @@ SPDX-FileCopyrightText: 2026 OpenSMI Contributors
 SPDX-License-Identifier: MIT
 -->
 
+![OpenSMI Logo](https://smartfactory.de/wp-content/uploads/2026/09/Logo_OpenSMI.png)
+
 [![Docs](https://img.shields.io/badge/docs-online-blue)](https://smartfactory-kl.github.io/opensmi-client)
 [![PyPI version](https://img.shields.io/pypi/v/opensmi-client.svg)](https://pypi.org/project/opensmi-client/)
 [![Python versions](https://img.shields.io/pypi/pyversions/opensmi-client.svg)](https://pypi.org/project/opensmi-client/)
