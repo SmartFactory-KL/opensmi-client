@@ -41,7 +41,7 @@ async def main():
         # Step ?: Module should be ready now
 
         # Step 5: Profit!
-        skill = machine.skill_set["DummySkillWithoutGateRequirement"]
+        skill = machine.skill_set["DummySkill"]
         print("parameters before:", await skill.parameter_set.read_all())
         await skill.parameter_set.write_all({"x": 5, "y": 42})
         await skill.start()
@@ -51,7 +51,8 @@ async def main():
         await skill.wait_for_state(SkillState.READY)
 
         try:
-            await skill.wait_for_state(SkillState.RUNNING, 1)  # will not happen :)
+            async with asyncio.timeout(1):
+                await skill.wait_for_state(SkillState.RUNNING)  # will not happen :)
         except asyncio.exceptions.TimeoutError:
             print("As expected, the skill didn't start on its own...")
 
