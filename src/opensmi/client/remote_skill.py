@@ -173,7 +173,7 @@ class RemoteSkill(RemoteCallable, UaDataChangeSubscriber):
             raise SkillNotSuspendableError(msg) from None
 
     async def wait_for_state(self, target_state: SkillState) -> None:
-        """Block until the skill either reached the given state or was halted. Given timeout is in seconds."""
+        """Block until the skill either reached the given state or was halted."""
         start_state = self.current_state
 
         while True:
