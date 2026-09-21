@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import dataclasses
 from datetime import datetime
+from enum import IntEnum
 from typing import TYPE_CHECKING, Any, cast
 
 import structlog
@@ -78,6 +79,8 @@ class TimestampedValue:
 class RemoteVariable(RemoteUaObject["RemoteVariableContainer"], UaDataChangeSubscriber):
     """The remote interface for a server-side `UaVariable`."""
 
+    _data_type_python: type | None = None
+
     def __init__(
         self,
         *,
@@ -145,16 +148,17 @@ class RemoteVariable(RemoteUaObject["RemoteVariableContainer"], UaDataChangeSubs
             elif (
                 node_type_node_id.NamespaceIndex != 0
             ):  # not OPC UA namespace -> custom type  # TODO what about standard enums?
-                (data_type_definition_data_value,) = await self.server.ua_client.uaclient.read_attributes(
-                    [node_type_node_id], ua.attribute_ids.AttributeIds.DataTypeDefinition
-                )
-                variant = data_type_definition_data_value.Value
-                assert variant is not None
-                dtype_definition = variant.Value
-                if isinstance(dtype_definition, EnumDefinition):
-                    self._ua_data_type = "Enumeration"  # close enough
-                    for field in dtype_definition.Fields:
-                        self._valid_values[field.Value] = field.Name
+                ua_type = self.server.ua_client.get_node(node_type_node_id)
+                ua_type_browse_name = await ua_type.read_browse_name()
+                self._ua_data_type = ua_type_browse_name.Name
+                try:
+                    self._data_type_python = self.server.custom_type_definitions[ua_type_browse_name.Name]
+                except KeyError:
+                    self.logger.warning(
+                        "Could not find Python data type",
+                        ua_data_type_browse_name=ua_type_browse_name,
+                        ua_data_type_node_id=node_type_node_id.to_string(),
+                    )
         else:
             self.logger.warning("Node has no valid data type!")
 
@@ -179,6 +183,12 @@ class RemoteVariable(RemoteUaObject["RemoteVariableContainer"], UaDataChangeSubs
         if value is None or (isinstance(value.Value, NodeId) and value.Value.is_null()):
             return None
 
+        # enums
+        if self._data_type_python and issubclass(self._data_type_python, IntEnum):
+            assert isinstance(value.Value, int)
+            return self._data_type_python(value.Value)
+
+        # node id references
         if len(self.valid_values) > 0 and isinstance(value.Value, (str, int)):
             try:
                 return self.valid_values[value.Value]  # pyright: ignore[reportArgumentType]
@@ -246,6 +256,9 @@ class RemoteVariable(RemoteUaObject["RemoteVariableContainer"], UaDataChangeSubs
 
         Used for e.g. selection dropdown in front-end.
         """
+        if self._data_type_python and issubclass(self._data_type_python, IntEnum):
+            return {field.value: field.name for field in self._data_type_python}
+
         return self._valid_values
 
     @property
