@@ -132,11 +132,13 @@ class RemoteServer(BaseServer[RemoteUaObject], UaDataChangeSubscriber):
 
         self._machines: dict[str, RemoteMachine] = {}
 
-        self.logger = structlog.getLogger("open_smi.RemoteServer", url=url, username=username)
+        self.logger = structlog.getLogger(__name__, url=url, username=username)
 
         self._state_update_task: Task[Never] = asyncio.create_task(
             self._status_update_loop(), name="client_state_update_task"
         )
+
+        self.custom_type_definitions: dict[str, type] = {}
 
         # signals
         self.status_changed = Signal[RemoteServerStatus]()
@@ -231,9 +233,7 @@ class RemoteServer(BaseServer[RemoteUaObject], UaDataChangeSubscriber):
         await self._ua_client.connect()
 
         try:
-            custom_objs = await self._ua_client.load_data_type_definitions()
-            for name, obj in custom_objs.items():
-                self.logger.debug("Found custom object", name=name, repr=repr(obj))
+            self.custom_type_definitions = await self._ua_client.load_data_type_definitions()
         except:
             self.logger.warning("Could not not load custom data type definitions!")
 
