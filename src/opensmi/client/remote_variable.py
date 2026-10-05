@@ -164,8 +164,8 @@ class RemoteVariable(RemoteUaObject["RemoteVariableContainer"], UaDataChangeSubs
 
         # handle properties
         properties = await get_properties(self.ua_node, logger=self.logger)
-        self._unit = properties.unit
-        self._range = properties.range
+        self.unit = properties.unit
+        self.range = properties.range
 
         await self.update_from_data_value(value_data_value)
 
