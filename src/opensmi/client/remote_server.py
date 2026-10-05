@@ -31,7 +31,7 @@ from cryptography.hazmat.primitives import serialization
 from opensmi.core import Signal
 from opensmi.core.base_server import BaseServer
 from opensmi.core.subscription_manager import SubscriptionManager, UaDataChangeSubscriber
-from opensmi.core.ua_node_util import get_children_browse_names
+from opensmi.core.ua_node_util import get_child_without_ns, get_children_browse_names
 from typing_extensions import override
 
 from opensmi.client.browse import DEFAULT_BROWSE_RULE, BrowseFeature, BrowseRule, evaluate_browse_features
@@ -276,15 +276,25 @@ class RemoteServer(BaseServer[RemoteUaObject], UaDataChangeSubscriber):
 
     async def _browse_machines(self) -> None:
         """Iterate through all machines."""
-        ua_module_set = self._ua_client.get_node(
+        ua_machines = self._ua_client.get_node(
             ua.NodeId(
                 Identifier=ua.Int32(1001),  # Machines
                 NamespaceIndex=self.ua_get_namespace_index("http://opcfoundation.org/UA/Machinery/"),
             ),
         )
 
+        result = await get_children_browse_names(ua_machines)
+        if not len(result):
+            self.logger.warning(
+                "No standard 'Machines' object found! Fallback to browsing.",
+                ua_node_id=ua_machines.nodeid.to_string(),
+            )
+            # raises if 'Machines' node does not exist
+            ua_machines = await get_child_without_ns(self._ua_client.get_objects_node(), browse_name="Machines")
+            result = await get_children_browse_names(ua_machines)
+
         tasks: list[Awaitable] = []
-        for child, browse_name in (await get_children_browse_names(ua_module_set)).items():
+        for child, browse_name in result.items():
             name = browse_name.Name
 
             browse_features = evaluate_browse_features(self.browse_rules, self.path / name)
