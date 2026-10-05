@@ -17,7 +17,6 @@ from asyncua.common.node import Node
 from asyncua.common.subscription import DataChangeNotif
 from asyncua.ua import (
     DataValue,
-    EnumDefinition,
     NodeId,
     NodeIdType,
     UaStatusCodeError,
@@ -342,17 +341,20 @@ class RemoteVariable(RemoteUaObject["RemoteVariableContainer"], UaDataChangeSubs
             msg = f"RemoteVariable '{self.name}' is not writable!"
             raise RuntimeError(msg)
 
+        variant_type = value.VariantType if isinstance(value, ua.Variant) else self.raw_value.VariantType
+
         try:
-            await write_value(self.ua_node, value)
+            await write_value(self.ua_node, value, variant_type=variant_type)
         except (BadUserAccessDenied, BadOutOfRange):
             raise
         except UaStatusCodeError:
             try:
+                assert isinstance(value, str)
                 index = list(self.valid_values.values()).index(value)
                 # enums always start with 0 -> key should be the index...
                 # but we are not only dealing with enums
                 key = list(self.valid_values.keys())[index]
-                await write_value(self.ua_node, key)
+                await write_value(self.ua_node, key, variant_type=variant_type)
             except Exception as err:
                 msg = f"{value} is not a valid value (valid are: {self.valid_values}!"
                 raise RuntimeError(msg) from err
