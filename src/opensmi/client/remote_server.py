@@ -117,7 +117,7 @@ class RemoteServer(BaseServer[RemoteUaObject], UaDataChangeSubscriber):
         self._ua_client.application_uri = application_uri
         self._application_uri: str = application_uri
 
-        self._ua_client.product_uri = "urn:open_smi:client"
+        self._ua_client.product_uri = "urn:opensmi:client"
         self._ua_client_state_subscription = self._ua_client.uaclient.subscribe_state()
 
         self._security_policy = security_policy
