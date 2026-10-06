@@ -159,31 +159,43 @@ class RemoteServer(BaseServer[RemoteUaObject], UaDataChangeSubscriber):
         self._status = status
         await self.status_changed.send(status)
 
-    async def connect(self, *, max_retries: int | None = 3) -> Self:
-        """Connect to the remote server.
+    async def connect(
+        self,
+        *,
+        max_retries: int | None = 3,
+        min_delay_seconds: float = 0.5,
+        max_delay_seconds: float = 30.0,
+    ) -> Self:
+        """Connect to the remote server, retrying if necessary (with Exponential backoff).
 
-        :raises ConnectionError: if connection could not be established after max_retries.
+        :param max_retries: How many times to retry connecting to the remote server. ``None`` means unlimited.
+        :param min_delay_seconds: How many seconds to wait minimum before next reconnection attempt.
+        :param max_delay_seconds: How many seconds to wait maximum before next reconnection attempt.
+
+        :raises ConnectionError: if connection could not be established after ``max_retries``.
         """
-        attempt = 1
-        timeout_base = 1
+        attempt = 0
+        last_exc: Exception
+        delay = min_delay_seconds
         while True:
             try:
                 await self._connect()
                 break
-            except ConnectionRefusedError:
+            except ConnectionRefusedError as err:
+                last_exc = err
                 self.logger.warning("Could not connect, ConnectionRefusedError!")
-            except BadUserAccessDenied:  # most users are only allowed 1 simultaneous login
-                # TODO how to differentiate wrong password?
+            except BadUserAccessDenied as err:  # most users are only allowed 1 simultaneous login
+                # TODO(CaHa): how to differentiate wrong password?
+                last_exc = err
                 self.logger.warning("Could not login, BadUserAccessDenied!")
             except UaError as err:
+                last_exc = err
                 self.logger.warning(f"Could not connect: {err}")
 
             attempt += 1
             if max_retries is not None and attempt > max_retries:  # give up after optional max_retries argument
-                msg = f"Reached maximum number of attempts ({max_retries}), giving up!"
-                raise ConnectionError(msg) from None
-
-            delay = min(timeout_base, timeout_base * (2**attempt))
+                msg = f"Reached maximum number of attempts ({max_retries}), giving up! Last error: {last_exc}"
+                raise ConnectionError(msg) from last_exc
 
             msg = f"Trying to connect again in {delay} seconds"
             if max_retries is not None:
@@ -193,6 +205,7 @@ class RemoteServer(BaseServer[RemoteUaObject], UaDataChangeSubscriber):
             self.logger.warning(msg)
 
             await asyncio.sleep(delay)
+            delay = min(max_delay_seconds, delay * 2)
 
         return self  # allows chaining
 
