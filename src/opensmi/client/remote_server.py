@@ -7,6 +7,7 @@
 from __future__ import annotations
 
 import asyncio
+import contextlib
 import datetime
 import uuid
 from asyncio import Task
@@ -134,9 +135,7 @@ class RemoteServer(BaseServer[RemoteUaObject], UaDataChangeSubscriber):
 
         self.logger = structlog.getLogger(__name__, url=url, username=username)
 
-        self._state_update_task: Task[Never] = asyncio.create_task(
-            self._status_update_loop(), name="client_state_update_task"
-        )
+        self._state_update_task: Task[Never] | None = None
 
         self.custom_type_definitions: dict[str, type] = {}
 
@@ -177,6 +176,8 @@ class RemoteServer(BaseServer[RemoteUaObject], UaDataChangeSubscriber):
         attempt = 0
         last_exc: Exception
         delay = min_delay_seconds
+        await self._cancel_state_update_task()
+        self._state_update_task = asyncio.create_task(self._status_update_loop(), name="client_state_update_task")
         while True:
             try:
                 await self._connect()
@@ -212,7 +213,19 @@ class RemoteServer(BaseServer[RemoteUaObject], UaDataChangeSubscriber):
     async def disconnect(self) -> None:
         """Disconnect from the remote server."""
         self.logger.info("Disconnecting...")
-        await self._ua_client.disconnect()
+        try:
+            await self._ua_client.disconnect()
+        finally:
+            await self._cancel_state_update_task()
+
+    async def _cancel_state_update_task(self) -> None:
+        if self._state_update_task is None:
+            return
+        self.logger.debug("Canceling state update task...")
+        self._state_update_task.cancel()
+        with contextlib.suppress(asyncio.CancelledError):
+            await self._state_update_task
+        self._state_update_task = None
 
     async def _set_security(self):
         if self._security_policy == SecurityPolicyType.NoSecurity:
