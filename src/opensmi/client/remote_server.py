@@ -83,16 +83,19 @@ class RemoteServer(BaseServer[RemoteUaObject], UaDataChangeSubscriber):
         security_policy: SecurityPolicyType = SecurityPolicyType.NoSecurity,
         browse_rules: Iterable[BrowseRule] | None = None,
     ) -> None:
-        """Create new RemoteServer instance.
+        """Create a new RemoteServer. Does not connect, call `connect` (or use ``async with``) for that.
 
-        :param url: The URL of the OPC UA server to connect to, i.e. opc.tcp://localhost:4843/
-        :param username: Username used for authentication of the given OPC UA server.
-        :param password: Password used for authentication of the given OPC UA server.
+        :param url: URL of the OPC UA server to connect to, e.g. opc.tcp://localhost:4843/
+        :param username: Username for authenticating with the server.
+        :param password: Password for authenticating with the server.
+        :param application_uri: Globally unique application URI identifying this client (also used in the certificate
+            when a security policy is set). A random ``urn:uuid:...`` is generated if ``None``.
         :param timeout: Timeout in seconds for connection tries.
-        :param security_policy: OPC UA security policy used for the connection. Default: No security policy.
-        :param auto_reconnect: Whether to automatically reconnect when connection to remove server is lost.
+        :param watchdog_interval: Interval in seconds between connection liveness checks.
+        :param auto_reconnect: Whether to automatically reconnect when the connection to the server is lost.
         :param reconnect_max_delay: How many seconds maximum to wait before reconnect (Exponential backoff).
         :param reconnect_request_timeout: How long requests block waiting for the connection to be ready.
+        :param security_policy: OPC UA security policy used for the connection. Default: No security policy.
         :param browse_rules: The browse rules for automatic browsing. Browse everything by default (``None``),
             an empty iterable means browse nothing.
         """
