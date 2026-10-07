@@ -8,12 +8,11 @@ import asyncio
 
 import structlog
 from asyncua.ua.uaerrors import BadLocked
-from opensmi.core import AsyncTaskMixin
 
 from opensmi.client.remote_lock import RemoteLock
 
 
-class AutoLock(AsyncTaskMixin):
+class AutoLock:
     """Mechanism that automatically locks given `RemoteLock` instance.
 
     Will try to lock again after the `RemoteLock` is lost of any reason (i.e. connection lost,
@@ -30,8 +29,8 @@ class AutoLock(AsyncTaskMixin):
         self._lock: RemoteLock = lock
         self._break_lock: bool = break_lock
         self._interval: float = interval
-        self.logger = structlog.getLogger("open_smi.AutoLock", lock_path=str(self._lock.path))
-
+        self.logger = structlog.getLogger("opensmi.AutoLock", lock_path=str(self._lock.path))
+        self._lock_task: asyncio.Task[None] | None = None
         self._lock.locking_user_changed.connect(self.on_locking_user_changed)
 
     async def lock(self, *, blocking: bool = True) -> None:
@@ -39,7 +38,12 @@ class AutoLock(AsyncTaskMixin):
         if blocking:
             await self._lock_once()
         else:
-            self._create_task(self._lock_once(), name="AutoLock")
+            self._schedule_lock()
+
+    def _schedule_lock(self) -> None:
+        if self._lock_task is not None and not self._lock_task.done():
+            return
+        self._lock_task = asyncio.create_task(self._lock_once(), name="AutoLock")
 
     async def _lock_once(self) -> None:
         method_name = "break" if self._break_lock else "init"
@@ -69,4 +73,4 @@ class AutoLock(AsyncTaskMixin):
         self.logger.debug("Received new locking user", username=username)
         if not username or username == self._lock.server.username:
             return
-        self._create_task(self._lock_once(), name="AutoLock")
+        self._schedule_lock()
