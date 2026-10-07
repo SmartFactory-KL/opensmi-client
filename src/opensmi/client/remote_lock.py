@@ -159,10 +159,10 @@ class RemoteLock(RemoteUaObject["BaseRemoteComponent"], UaDataChangeSubscriber):
         )
 
         max_inactive_lock_time = await ua_max_inactive_lock_time.read_value()
-        if isinstance(max_inactive_lock_time, int):
-            self._max_inactive_lock_time_ms = max_inactive_lock_time
+        if isinstance(max_inactive_lock_time, (float, int)):
+            self._max_inactive_lock_time_ms = int(max_inactive_lock_time)
         else:
-            self.logger.warning("Could not read RemainingLockTime, using default")
+            self.logger.warning("Could not read MaxInactiveLockTime, using default")
 
     @override
     async def _init(self) -> None:
