@@ -7,6 +7,7 @@
 from __future__ import annotations
 
 import asyncio
+import time
 from dataclasses import dataclass
 from datetime import datetime
 from typing import TYPE_CHECKING, Any
@@ -14,6 +15,7 @@ from typing import TYPE_CHECKING, Any
 from asyncua import ua
 from asyncua.common.node import Node
 from asyncua.common.subscription import DataChangeNotif
+from asyncua.ua.uaerrors import UaError
 from opensmi.core import Signal
 from opensmi.core.subscription_manager import UaDataChangeSubscriber
 from opensmi.core.ua_node_util import get_children_browse_names
@@ -47,6 +49,9 @@ class RemoteLock(RemoteUaObject["BaseRemoteComponent"], UaDataChangeSubscriber):
     """The remote interface for a server-side `Lock`."""
 
     _ua_nodes: RemoteLockUaNodes
+    _max_inactive_lock_time_ms: int
+    _renew_retry_seconds: float
+    _renew_threshold: float
 
     def __init__(
         self,
@@ -54,12 +59,17 @@ class RemoteLock(RemoteUaObject["BaseRemoteComponent"], UaDataChangeSubscriber):
         parent: BaseRemoteComponent,
         server: RemoteServer,
         ua_node: Node | None = None,
-        max_inactive_lock_time: int | None = None,
+        max_inactive_lock_time: int = 60_000,
+        renew_threshold: float = 0.5,
+        renew_retry_seconds: float = 1.0,
     ) -> None:
         """Create a new instance. Must be asynchronously initialized with ``init()`` before use.
 
         :param max_inactive_lock_time: Default ``MaxInactiveLockTime`` in milliseconds. Will be overridden
             if the server provides this information.
+        :param renew_threshold: Fraction of ``MaxInactiveLockTime`` below which a renewal is requested (0 < x < 1).
+        :param renew_retry_seconds: Minimum seconds between two `renew_due` events while still below the
+            threshold (> 0).
         """
         super().__init__(name="Lock", ua_node=ua_node, parent=parent, server=server)
 
@@ -68,10 +78,18 @@ class RemoteLock(RemoteUaObject["BaseRemoteComponent"], UaDataChangeSubscriber):
         self._locked = False
         self._locked_since: datetime | None = None
         self._remaining_lock_time_ms: int | None = None
-        self._max_inactive_lock_time_ms: int | None = max_inactive_lock_time
+        self._last_renew_request: float | None = None
+        # validated by property setters:
+        self.max_inactive_lock_time_ms = max_inactive_lock_time
+        self.renew_retry_seconds = renew_retry_seconds
+        self.renew_threshold = renew_threshold
 
         self.locked_changed = Signal[RemoteLock, bool]()
+        """Callback when the locked status changed. Payload is locked status."""
         self.locking_user_changed = Signal[RemoteLock, str]()
+        """Callback when a lock user changed. Payload is the new user name."""
+        self.renew_due = Signal[RemoteLock, float]()
+        """Callback when a lock renew is due. Payload contains the remaining lock time in milliseconds."""
 
     def dto(self) -> RemoteLockDTO | None:
         """Return the data transfer object."""
@@ -126,12 +144,50 @@ class RemoteLock(RemoteUaObject["BaseRemoteComponent"], UaDataChangeSubscriber):
         return self._remaining_lock_time_ms
 
     @property
-    def max_inactive_lock_time_ms(self) -> int | None:
-        """Return the maximum (inactive) lock time in milliseconds. Read-only property.
+    def max_inactive_lock_time_ms(self) -> int:
+        """Return the maximum (inactive) lock time in milliseconds.
 
-        Is ``None`` when the server did not provide this value. Only read during initialization, assumed to be constant.
+        Only read once from server during initialization, assumed to be constant.
+        If the server did not provide this information, the default value from a corresponding argument
+        to `__init__` will be used.
         """
         return self._max_inactive_lock_time_ms
+
+    @max_inactive_lock_time_ms.setter
+    def max_inactive_lock_time_ms(self, value: int) -> None:
+        value = int(value)
+        if not value > 0:
+            msg = f"max_inactive_lock_time_ms must be a number > 0, got {value!r}"
+            raise ValueError(msg)
+        self._max_inactive_lock_time_ms = value
+        self._last_renew_request = None  # re-evaluate against the new maximum
+
+    @property
+    def renew_threshold(self) -> float:
+        """Fraction of ``MaxInactiveLockTime`` below which a renewal is requested (0 < x < 1)."""
+        return self._renew_threshold
+
+    @renew_threshold.setter
+    def renew_threshold(self, value: float) -> None:
+        if not 0 < value < 1:
+            msg = f"renew_threshold must be a number with 0 < x < 1, got {value!r}"
+            raise ValueError(msg)
+        self._renew_threshold = float(value)
+        self._last_renew_request = None  # re-evaluate with the new threshold
+
+    @property
+    def renew_retry_seconds(self) -> float:
+        """Minimum seconds between two ``renew_due`` events while still below the threshold (> 0)."""
+        return self._renew_retry_seconds
+
+    @renew_retry_seconds.setter
+    def renew_retry_seconds(self, value: float) -> None:
+        if not value > 0:
+            msg = f"renew_retry_seconds must be a number > 0, got {value!r}"
+            raise ValueError(msg)
+        self._renew_retry_seconds = float(value)
+
+    # -------------------------------------------------------------------------------------------------------
 
     async def init_lock(self) -> None:
         """Occupy the lock, will fail when already locked."""
@@ -150,18 +206,39 @@ class RemoteLock(RemoteUaObject["BaseRemoteComponent"], UaDataChangeSubscriber):
         await self.ua_node.call_method(self._ua_nodes.RenewLock)
 
     async def _ua_read_max_inactive_lock_time(self) -> None:
-        ua_max_inactive_lock_time = self.server.ua_client.get_node(
-            ua.NodeId(
-                Identifier=ua.Int32(6387),  # /Objects/Server/ServerCapabilities/MaxInactiveLockTime
-                NamespaceIndex=self.server.ua_get_namespace_index("http://opcfoundation.org/UA/DI/"),
+        try:
+            ua_max_inactive_lock_time = self.server.ua_client.get_node(
+                ua.NodeId(
+                    Identifier=ua.Int32(6387),  # /Objects/Server/ServerCapabilities/MaxInactiveLockTime
+                    NamespaceIndex=self.server.ua_get_namespace_index("http://opcfoundation.org/UA/DI/"),
+                )
             )
-        )
 
-        max_inactive_lock_time = await ua_max_inactive_lock_time.read_value()
-        if isinstance(max_inactive_lock_time, (float, int)):
-            self._max_inactive_lock_time_ms = int(max_inactive_lock_time)
-        else:
-            self.logger.warning("Could not read MaxInactiveLockTime, using default")
+            max_inactive_lock_time = await ua_max_inactive_lock_time.read_value()
+            if isinstance(max_inactive_lock_time, (float, int)):
+                self.max_inactive_lock_time_ms = int(max_inactive_lock_time)
+                self.logger.info(
+                    "Using server MaxInactiveLockTime",
+                    max_inactive_lock_time_ms=self.max_inactive_lock_time_ms,
+                )
+            else:
+                self.logger.warning(
+                    "Could not read valid MaxInactiveLockTime, using default",
+                    reason="MaxInactiveLockTime was not a float nor an int.",
+                    max_inactive_lock_time=max_inactive_lock_time,
+                )
+        except UaError as err:
+            self.logger.warning(
+                "Could not read MaxInactiveLockTime, using default",
+                reason=err,
+                default=self.max_inactive_lock_time_ms,
+            )
+        except Exception as err:
+            self.logger.warning(
+                "Invalid MaxInactiveLockTime from server, using default",
+                reason=err,
+                default=self.max_inactive_lock_time_ms,
+            )
 
     async def _browse(self) -> None:
         ua_locked: Node | None = None
@@ -234,6 +311,34 @@ class RemoteLock(RemoteUaObject["BaseRemoteComponent"], UaDataChangeSubscriber):
         """Return all raw OPC UA nodes related to this `RemoteLock`."""
         return self._ua_nodes
 
+    async def _check_renew_due(self) -> None:
+        max_inactive_lock_time_ms = self.max_inactive_lock_time_ms
+        remaining_lock_time_ms = self._remaining_lock_time_ms
+
+        if not self.locked_by_us or remaining_lock_time_ms is None:
+            self._last_renew_request = None
+            return
+
+        if remaining_lock_time_ms > max_inactive_lock_time_ms:
+            self.logger.warning(
+                "Remaining lock time exceeds configured maximum, raising maximum",
+                remaining_lock_time_ms=remaining_lock_time_ms,
+                max_inactive_lock_time_ms=max_inactive_lock_time_ms,
+            )
+            self.max_inactive_lock_time_ms = remaining_lock_time_ms  # setter validates, resets re-arm state
+            max_inactive_lock_time_ms = self.max_inactive_lock_time_ms
+
+        if remaining_lock_time_ms >= max_inactive_lock_time_ms * self.renew_threshold:
+            self._last_renew_request = None  # re-arm
+            return
+
+        now = time.monotonic()
+        if self._last_renew_request is not None and now - self._last_renew_request < self.renew_retry_seconds:
+            return
+
+        self._last_renew_request = now
+        await self.renew_due.send(self, remaining_lock_time_ms)
+
     @override
     async def ua_on_data_change(self, node: Node, val: Any, data: DataChangeNotif) -> None:
         match node.nodeid:
@@ -248,3 +353,4 @@ class RemoteLock(RemoteUaObject["BaseRemoteComponent"], UaDataChangeSubscriber):
                 self._locking_client = val
             case self._ua_nodes.RemainingLockTime:
                 self._remaining_lock_time_ms = val
+                await self._check_renew_due()
