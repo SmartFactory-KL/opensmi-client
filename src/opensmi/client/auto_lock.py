@@ -8,7 +8,6 @@ import asyncio
 import contextlib
 
 import structlog
-from asyncua.ua.uaerrors import BadLocked
 
 from opensmi.client.remote_lock import RemoteLock
 
@@ -32,6 +31,7 @@ class AutoLock:
         self._interval: float = interval
         self.logger = structlog.getLogger("opensmi.AutoLock", lock_path=str(self._lock.path))
         self._lock_task: asyncio.Task[None] | None = None
+        self._renew_task: asyncio.Task[None] | None = None
         self._active = False
 
     async def lock(self, *, blocking: bool = True) -> None:
@@ -42,6 +42,7 @@ class AutoLock:
         if not self._active:
             self._active = True
             self._lock.locking_user_changed.connect(self.on_locking_user_changed)
+            self._lock.renew_due.connect(self.on_renew_due)
 
         if blocking:
             await self._lock_once()
@@ -54,12 +55,17 @@ class AutoLock:
             return
         self._active = False
         self._lock.locking_user_changed.disconnect(self.on_locking_user_changed)
+        self._lock.renew_due.disconnect(self.on_renew_due)
 
-        if self._lock_task:
-            self._lock_task.cancel()
+        # cancel tasks
+        for task in (self._lock_task, self._renew_task):
+            if not task:
+                continue
+            task.cancel()
             with contextlib.suppress(asyncio.CancelledError):
-                await self._lock_task
-            self._lock_task = None
+                await task
+        self._lock_task = None
+        self._renew_task = None
 
         if self._lock.locked_by_us:
             try:
@@ -72,27 +78,25 @@ class AutoLock:
             return
         if self._lock_task is not None and not self._lock_task.done():
             return
-        self._lock_task = asyncio.create_task(self._lock_once(), name="AutoLock")
+        self._lock_task = asyncio.create_task(self._lock_once(), name="AutoLock_Lock")
 
     async def _lock_once(self) -> None:
         method_name = "break" if self._break_lock else "init"
         while self._active and not self._lock.locked_by_us:
             try:
-                self.logger.info(
-                    f"Trying to {method_name} the lock... ",
-                    locking_user=self._lock.locking_user,
-                    locking_client=self._lock.locking_client,
-                )
                 if self._break_lock:
                     await self._lock.break_lock()
                 else:
                     await self._lock.init_lock()
                 self.logger.info("Successfully locked!")
                 break
-            except BadLocked:
-                pass
-            except Exception:  # unknown problem
-                self.logger.exception(f"Cannot {method_name} lock!")
+            except Exception as err:
+                self.logger.warning(
+                    f"Could not {method_name} lock!",
+                    reason=err,
+                    locking_user=self._lock.locking_user,
+                    locking_client=self._lock.locking_client,
+                )
             await asyncio.sleep(self._interval)
 
     async def on_locking_user_changed(self, _lock: RemoteLock, username: str) -> None:
@@ -100,6 +104,20 @@ class AutoLock:
         self.logger.debug("Received new locking user", username=username)
         if username != self._lock.server.username:
             self._schedule_lock()
+
+    async def _renew(self) -> None:
+        try:
+            async with asyncio.timeout(5):
+                await self._lock.renew_lock()
+        except Exception as err:
+            self.logger.warning("Could not renew lock", reason=err)
+
+    async def on_renew_due(self, _lock: RemoteLock, remaining_ms: float) -> None:
+        """Schedule lock renew task because we don't want to lose the lock."""
+        if not self._active or (self._renew_task and not self._renew_task.done()):
+            return
+        self.logger.debug("Lock renewal requested", remaining_ms=remaining_ms)
+        self._renew_task = asyncio.create_task(self._renew(), name="AutoLock_Renew")
 
     @property
     def is_active(self) -> bool:
