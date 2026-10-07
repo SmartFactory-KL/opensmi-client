@@ -69,8 +69,7 @@ class AutoLock:
         self.logger.info("Successfully locked!")
 
     async def on_locking_user_changed(self, _lock: RemoteLock, username: str) -> None:
-        """Schedule lock task because the lock changed."""
+        """Schedule lock task because the locking user changed."""
         self.logger.debug("Received new locking user", username=username)
-        if not username or username == self._lock.server.username:
-            return
-        self._schedule_lock()
+        if username != self._lock.server.username:
+            self._schedule_lock()
