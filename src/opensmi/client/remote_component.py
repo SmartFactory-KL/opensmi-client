@@ -177,8 +177,7 @@ class BaseRemoteComponent(RemoteUaObject["BaseRemoteComponent"], UaDataChangeSub
         """Browse a single lock in given ``ua_node``."""
         from opensmi.client.remote_lock import RemoteLock
 
-        lock = RemoteLock(server=self.server, parent=self)
-        lock.ua_node = ua_node
+        lock = RemoteLock(ua_node=ua_node, server=self.server, parent=self)
         await asyncio.gather(lock.init(), lock.ua_read_type(), return_exceptions=True)
         self._lock = lock
 

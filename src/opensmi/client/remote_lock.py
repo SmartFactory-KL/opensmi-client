@@ -46,9 +46,15 @@ class RemoteLock(RemoteUaObject["BaseRemoteComponent"], UaDataChangeSubscriber):
 
     _ua_nodes: _RemoteLockUaNodes
 
-    def __init__(self, *, parent: BaseRemoteComponent, server: RemoteServer) -> None:
+    def __init__(
+        self,
+        *,
+        parent: BaseRemoteComponent,
+        server: RemoteServer,
+        ua_node: Node | None = None,
+    ) -> None:
         """Create a new instance. Must be asynchronously initialized with ``init()`` before use."""
-        super().__init__(name="Lock", ua_node=None, parent=parent, server=server)
+        super().__init__(name="Lock", ua_node=ua_node, parent=parent, server=server)
 
         self._locking_user = ""
         self._locking_client = ""
