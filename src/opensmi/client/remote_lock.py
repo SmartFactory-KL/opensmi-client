@@ -15,7 +15,6 @@ from asyncua import ua
 from asyncua.common.node import Node
 from asyncua.common.subscription import DataChangeNotif
 from opensmi.core import Signal
-from opensmi.core.errors import OpenSmiRuntimeError
 from opensmi.core.subscription_manager import UaDataChangeSubscriber
 from opensmi.core.ua_node_util import get_children_browse_names
 from typing_extensions import override
@@ -28,8 +27,8 @@ if TYPE_CHECKING:
     from opensmi.client.remote_component import BaseRemoteComponent
 
 
-@dataclass(slots=True)
-class _RemoteLockUaNodes:
+@dataclass(slots=True, frozen=True, kw_only=True)
+class RemoteLockUaNodes:
     """Data class for all `RemoteLock` OPC UA nodes except the main node."""
 
     Locked: ua.NodeId
@@ -47,7 +46,7 @@ class _RemoteLockUaNodes:
 class RemoteLock(RemoteUaObject["BaseRemoteComponent"], UaDataChangeSubscriber):
     """The remote interface for a server-side `Lock`."""
 
-    _ua_nodes: _RemoteLockUaNodes
+    _ua_nodes: RemoteLockUaNodes
 
     def __init__(
         self,
@@ -164,10 +163,7 @@ class RemoteLock(RemoteUaObject["BaseRemoteComponent"], UaDataChangeSubscriber):
         else:
             self.logger.warning("Could not read MaxInactiveLockTime, using default")
 
-    @override
-    async def _init(self) -> None:
-        await super()._init()
-
+    async def _browse(self) -> None:
         ua_locked: Node | None = None
         ua_locking_user: Node | None = None
         ua_locking_client: Node | None = None
@@ -178,14 +174,7 @@ class RemoteLock(RemoteUaObject["BaseRemoteComponent"], UaDataChangeSubscriber):
         ua_exit_lock: Node | None = None
         ua_renew_lock: Node | None = None
 
-        browse_result, _ = await asyncio.gather(
-            get_children_browse_names(self.ua_node), self._ua_read_max_inactive_lock_time(), return_exceptions=True
-        )
-
-        if isinstance(browse_result, BaseException):
-            msg = f"Could not browse {self.path} children!"
-            raise OpenSmiRuntimeError(msg)
-
+        browse_result = await get_children_browse_names(self.ua_node)
         for child, browse_name in browse_result.items():
             match browse_name.Name:
                 case "Locked":
@@ -214,7 +203,7 @@ class RemoteLock(RemoteUaObject["BaseRemoteComponent"], UaDataChangeSubscriber):
         assert ua_exit_lock is not None
         assert ua_renew_lock is not None
 
-        self._ua_nodes = _RemoteLockUaNodes(
+        self._ua_nodes = RemoteLockUaNodes(
             Locked=ua_locked.nodeid,
             LockingUser=ua_locking_user.nodeid,
             LockingClient=ua_locking_client.nodeid,
@@ -225,8 +214,25 @@ class RemoteLock(RemoteUaObject["BaseRemoteComponent"], UaDataChangeSubscriber):
             RenewLock=ua_renew_lock.nodeid,
         )
 
-        nodes_to_subscribe = [ua_locked, ua_locking_user, ua_locking_client, ua_remaining_lock_time]
+    @override
+    async def _init(self) -> None:
+        await super()._init()
+
+        await asyncio.gather(self._browse(), self._ua_read_max_inactive_lock_time())
+
+        assert self._ua_nodes
+        nodes_to_subscribe = [
+            self.server.ua_client.get_node(self._ua_nodes.Locked),
+            self.server.ua_client.get_node(self._ua_nodes.LockingUser),
+            self.server.ua_client.get_node(self._ua_nodes.LockingClient),
+            self.server.ua_client.get_node(self._ua_nodes.RemainingLockTime),
+        ]
         await self.server.subscription_manager.subscribe_data_change(handler=self, nodes=nodes_to_subscribe)
+
+    @property
+    def ua_nodes(self) -> RemoteLockUaNodes:
+        """Return all raw OPC UA nodes related to this `RemoteLock`."""
+        return self._ua_nodes
 
     @override
     async def ua_on_data_change(self, node: Node, val: Any, data: DataChangeNotif) -> None:
