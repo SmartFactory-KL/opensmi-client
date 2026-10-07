@@ -13,10 +13,7 @@ async def main() -> None:
     # remember: do not commit the actual password to version control...
     async with RemoteServer("opc.tcp://localhost:4843/", username="orchestrator", password="orchestrator") as server:
         machine = server.machines["DummyMachine"]
-        lock = machine.lock
-        assert lock is not None
-
-        auto_lock = AutoLock(lock)
+        auto_lock = AutoLock(machine.lock)
         await auto_lock.lock()
 
         event = asyncio.Event()
