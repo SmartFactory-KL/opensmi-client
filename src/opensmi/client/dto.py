@@ -103,6 +103,12 @@ class RemoteLockDTO(RemoteUaObjectDTO):
     """Client info of the locking user."""
     locked_since: datetime | None
     """Timestamp the lock is locked since. Is ``None`` when unlocked."""
+    remaining_lock_time_ms: int | None
+    """Remaining lock time in milliseconds. Is ``None`` when unlocked or the server does not provide 
+    this information."""
+    max_inactive_lock_time_ms: int | None
+    """Maximum inactive lock time in milliseconds before the lock is automatically released.
+    May be ``None`` when the server does not provide this information."""
 
 
 @dataclass(slots=True, frozen=True, kw_only=True)
