@@ -129,12 +129,12 @@ class RemoteCallable(RemoteUaObject["BaseRemoteComponent"]):
         """Read all final result data variables."""
         return await self.final_result_data.read_all()
 
-    @deprecated("Please use parameters.read_all() instead.")
+    @deprecated("Please use parameter_set.read_all() instead.")
     async def read_parameters(self) -> Mapping[str, Any]:
         """Read all parameter set variables."""
         return await self.parameter_set.read_all()
 
-    @deprecated("Please use parameters.write_all() instead.")
+    @deprecated("Please use parameter_set.write_all() instead.")
     async def write_parameters(self, parameters: Mapping[str, Any]) -> None:
         """Write given parameter set variables."""
         await self.parameter_set.write_all(parameters)
