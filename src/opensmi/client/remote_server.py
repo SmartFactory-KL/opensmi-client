@@ -43,17 +43,17 @@ from opensmi.client.remote_ua_object import RemoteUaObject
 class RemoteServerStatus(Enum):
     """Status of the remote server."""
 
-    DISCONNECTED = auto()
+    DISCONNECTED = "disconnected"
     """The client is not connected to a server."""
-    CONNECTING = auto()
+    CONNECTING = "connecting"
     """The client is trying to connect to a server."""
-    BROWSING = auto()
+    BROWSING = "browsing"
     """The client is connected, but is busy browsing the server namespace."""
-    CONNECTED = auto()
+    CONNECTED = "connected"
     """The client is connected and ready to be used."""
-    RECONNECTING = auto()
+    RECONNECTING = "reconnecting"
     """The client lost connection, but is trying to reconnect to the server."""
-    DISCONNECTING = auto()
+    DISCONNECTING = "disconnecting"
     """The client is currently disconnecting."""
 
 
