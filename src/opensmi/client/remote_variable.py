@@ -184,8 +184,11 @@ class RemoteVariable(RemoteUaObject["RemoteVariableContainer"], UaDataChangeSubs
 
         # enums
         if self._data_type_python and issubclass(self._data_type_python, IntEnum):
-            assert isinstance(value.Value, int)
-            return self._data_type_python(value.Value)
+            try:
+                return self._data_type_python(value.Value)
+            except Exception as err:
+                self.logger.warning("Could not process invalid enum value", reason=err, value=value.Value)
+            return None
 
         # node id references
         if len(self.valid_values) > 0 and isinstance(value.Value, (str, int)):
