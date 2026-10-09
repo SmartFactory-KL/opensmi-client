@@ -131,6 +131,8 @@ class RemoteServer(BaseServer[RemoteUaObject], UaDataChangeSubscriber):
             self._browse_rules = tuple(browse_rules)
 
         self._status = RemoteServerStatus.DISCONNECTED
+        self._suppress_connected = True
+        """Used to suppress `CONNECTED` before `BROWSING` state from ua client."""
 
         self.subscription_manager = SubscriptionManager(ua_client=self._ua_client)
 
@@ -256,7 +258,8 @@ class RemoteServer(BaseServer[RemoteUaObject], UaDataChangeSubscriber):
         self.logger.info(f"Setting security to {policy=}, {mode=}")
         await self._ua_client.set_security(policy=policy, certificate=cert_bytes, private_key=key_bytes, mode=mode)
 
-    async def _connect(self):
+    async def _connect(self) -> None:
+        self._suppress_connected = True
         await self._set_security()
         await self._write_ua_client_state(self.ua_client.uaclient.state)
         await self._ua_client.connect()
@@ -281,6 +284,7 @@ class RemoteServer(BaseServer[RemoteUaObject], UaDataChangeSubscriber):
 
         await self._setup_subscriptions()
         self.logger.info("Monitoring items", no_of_items=self.subscription_manager.no_of_monitored_items)
+        self._suppress_connected = False
         await self._set_status(RemoteServerStatus.CONNECTED)
 
     @property
@@ -361,7 +365,8 @@ class RemoteServer(BaseServer[RemoteUaObject], UaDataChangeSubscriber):
     async def _write_ua_client_state(self, ua_client_state: UaClientState) -> None:
         match ua_client_state:
             case UaClientState.CONNECTED:
-                await self._set_status(RemoteServerStatus.CONNECTED)
+                if not self._suppress_connected:
+                    await self._set_status(RemoteServerStatus.CONNECTED)
             case UaClientState.CONNECTING | UaClientState.SOCKET_OPEN | UaClientState.CHANNEL_OPEN:
                 await self._set_status(RemoteServerStatus.CONNECTING)
             case UaClientState.DISCONNECTED:
