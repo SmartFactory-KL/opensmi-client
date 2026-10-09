@@ -132,7 +132,7 @@ class RemoteServer(BaseServer[RemoteUaObject], UaDataChangeSubscriber):
 
         self._status = RemoteServerStatus.DISCONNECTED
 
-        self.subscription_manager = SubscriptionManager()
+        self.subscription_manager = SubscriptionManager(ua_client=self._ua_client)
 
         self._machines: dict[str, RemoteMachine] = {}
 
@@ -273,7 +273,7 @@ class RemoteServer(BaseServer[RemoteUaObject], UaDataChangeSubscriber):
         self._machines.clear()
         self._ua_objects.clear()
         await self.subscription_manager.clear_subscriptions()
-        await self.subscription_manager.init(self._ua_client)
+        await self.subscription_manager.init()
 
         if self.browse_rules:
             await self._set_status(RemoteServerStatus.BROWSING)

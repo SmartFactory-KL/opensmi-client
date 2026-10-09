@@ -42,7 +42,7 @@ requires-python = ">=3.11"
 
 dependencies = [
     "asyncua~=2.0.1",
-    "OpenSMI-Core>=0.2.2"
+    "opensmi-core>=0.3",
 ]
 
 [project.urls]
