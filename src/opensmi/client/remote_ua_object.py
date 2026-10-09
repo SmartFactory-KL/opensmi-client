@@ -6,7 +6,7 @@
 
 from abc import abstractmethod
 from collections.abc import AsyncGenerator, Iterable
-from typing import TYPE_CHECKING, Generic, TypeVar
+from typing import TYPE_CHECKING, Generic, TypeVar, cast
 
 from asyncua import ua
 from asyncua.common.node import Node
@@ -19,7 +19,7 @@ from opensmi.client.browse import DEFAULT_BROWSE_RULE, BrowseRule
 if TYPE_CHECKING:
     from opensmi.client.remote_server import RemoteServer
 
-_ParentType = TypeVar("_ParentType", bound="RemoteUaObject")
+_ParentType = TypeVar("_ParentType", bound="RemoteUaObject | None")
 
 
 class RemoteUaObject(BaseUaObject["RemoteServer"], LifecycleMixin, Generic[_ParentType]):
@@ -77,7 +77,12 @@ class RemoteUaObject(BaseUaObject["RemoteServer"], LifecycleMixin, Generic[_Pare
     @property
     def parent(self) -> _ParentType:
         """Return the parent remote UA object."""
-        return self._parent
+        return cast(_ParentType, self._parent)
+
+    @parent.setter
+    def parent(self, parent: BaseUaObject["RemoteServer"]) -> None:
+        assert isinstance(parent, RemoteUaObject), "No valid parent given, must be at least an RemoteUaObject!"
+        self._parent = parent
 
     async def ua_read_type(self) -> str:
         """Read the OPC UA type, resolved from node ID browse name."""
