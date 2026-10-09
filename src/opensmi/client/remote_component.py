@@ -14,10 +14,11 @@ from typing import TYPE_CHECKING, Any
 from asyncua import ua
 from asyncua.common.node import Node
 from asyncua.common.subscription import DataChangeNotif
+from asyncua.ua.uaerrors import BadServiceUnsupported
 from opensmi.core import Signal
 from opensmi.core.protocols import UaEvent
 from opensmi.core.subscription_manager import UaDataChangeSubscriber, UaEventSubscriber
-from opensmi.core.ua_node_util import get_children_browse_names, get_type_definition
+from opensmi.core.ua_node_util import get_child_without_ns, get_children_browse_names, get_type_definition
 from typing_extensions import deprecated, override
 
 from opensmi.client.browse import BrowseFeature, BrowseRule, evaluate_browse_features
@@ -293,6 +294,17 @@ class BaseRemoteComponent(RemoteUaObject["BaseRemoteComponent"], UaDataChangeSub
             *(self._browse_method(child, name=browse_name.Name) for child, browse_name in children.items())
         )
 
+    async def _setup_notification(self, ua_node: Node) -> None:
+        try:
+            await self.server.subscription_manager.subscribe_event(self, ua_node)
+        except BadServiceUnsupported:
+            # legacy (v4 server)
+            try:
+                ua_messages = await get_child_without_ns(ua_node, browse_name="Messages")
+                await self.server.subscription_manager.subscribe_event(self, ua_messages)
+            except Exception as err:
+                self.logger.warning("Failed to setup notification", reason=err, ua_node=ua_node.nodeid.to_string())
+
     @override
     async def _init(self) -> None:  # noqa: C901
         """Set up all subscriptions for all subcomponents and itself."""
@@ -315,7 +327,7 @@ class BaseRemoteComponent(RemoteUaObject["BaseRemoteComponent"], UaDataChangeSub
                     else:
                         self.logger.info("Skipped browsing skill set...")
                 case "Notification":
-                    tasks.append(self.server.subscription_manager.subscribe_event(self, child))
+                    tasks.append(self._setup_notification(child))
                 case "Identification":
                     if BrowseFeature.IDENTIFICATION in evaluated_browse_features:
                         self.identification.ua_node = child
