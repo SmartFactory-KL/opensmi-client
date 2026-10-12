@@ -44,7 +44,7 @@ class RemoteMethod(RemoteCallable):
                 assert isinstance(ua_node.nodeid, ua.NodeId)
                 self._ua_call = ua_node.nodeid
             case _:
-                self.logger.warning("Found Unsupported UA node in method", ua_node=ua_node, browse_name=browse_name)
+                self.logger.debug("Found unsupported UA node in method", ua_node=ua_node, browse_name=browse_name)
         return []
 
     async def call(self) -> Mapping[str, Any]:

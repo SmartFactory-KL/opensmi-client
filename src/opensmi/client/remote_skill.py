@@ -136,7 +136,7 @@ class RemoteSkill(RemoteCallable, UaDataChangeSubscriber):
                 self._ua_state_machine_node = ua_node
                 return [self._browse_state_machine(ua_node)]
             case _:
-                self.logger.warning("Found unsupported UA node in skill", ua_node=ua_node, browse_name=browse_name)
+                self.logger.debug("Found unsupported UA node in skill", ua_node=ua_node, browse_name=browse_name)
         return []
 
     @property

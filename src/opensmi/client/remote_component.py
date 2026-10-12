@@ -158,7 +158,7 @@ class BaseRemoteComponent(RemoteUaObject["BaseRemoteComponent"], UaDataChangeSub
                     tasks.append(precondition_check.ua_read_type())
                     self.precondition_check_set[name] = precondition_check
                 case _:
-                    self.logger.warning(
+                    self.logger.debug(
                         "Found unsupported node in skill node!", ua_node=str(child.nodeid), browse_name=browse_name
                     )
 
@@ -269,7 +269,7 @@ class BaseRemoteComponent(RemoteUaObject["BaseRemoteComponent"], UaDataChangeSub
                     if not await self._init_machinery_building_blocks_handle_node(
                         child, browse_name, evaluated_browse_features
                     ):
-                        self.logger.warning("Found unsupported machinery building block", browse_name=browse_name)
+                        self.logger.debug("Found unsupported machinery building block", browse_name=browse_name)
 
     async def _browse_method(self, ua_node: Node, *, name: str) -> None:
         """Browse a single method in given ``ua_node`` with ``name``."""
