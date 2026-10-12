@@ -12,7 +12,7 @@ import datetime
 import uuid
 from asyncio import Task
 from collections.abc import Awaitable, Iterable
-from enum import Enum, auto
+from enum import Enum
 from pathlib import PurePosixPath
 from typing import Any, Never, Self
 
@@ -133,6 +133,8 @@ class RemoteServer(BaseServer[RemoteUaObject], UaDataChangeSubscriber):
         self._status = RemoteServerStatus.DISCONNECTED
         self._suppress_connected = True
         """Used to suppress `CONNECTED` before `BROWSING` state from ua client."""
+        self._disconnect_requested = False
+        self._connect_task: asyncio.Task | None = None
 
         self.subscription_manager = SubscriptionManager(ua_client=self._ua_client)
 
@@ -178,6 +180,35 @@ class RemoteServer(BaseServer[RemoteUaObject], UaDataChangeSubscriber):
 
         :raises ConnectionError: if connection could not be established after ``max_retries``.
         """
+        if self._connect_task is not None:
+            msg = "connect() is already in progress!"
+            raise RuntimeError(msg)
+
+        self._disconnect_requested = False
+        self._connect_task = asyncio.create_task(
+            self._connect_and_retry(
+                max_retries=max_retries, min_delay_seconds=min_delay_seconds, max_delay_seconds=max_delay_seconds
+            ),
+            name="client_connect_task",
+        )
+        try:
+            await self._connect_task
+        except asyncio.CancelledError:
+            if self._disconnect_requested:
+                msg = "connect() aborted by disconnect()"
+                raise ConnectionAbortedError(msg) from None
+            raise
+        finally:
+            self._connect_task = None
+        return self  # allows chaining
+
+    async def _connect_and_retry(
+        self,
+        *,
+        max_retries: int | None = 3,
+        min_delay_seconds: float = 0.5,
+        max_delay_seconds: float = 30.0,
+    ) -> None:
         attempt = 0
         last_exc: Exception
         delay = min_delay_seconds
@@ -213,15 +244,26 @@ class RemoteServer(BaseServer[RemoteUaObject], UaDataChangeSubscriber):
             await asyncio.sleep(delay)
             delay = min(max_delay_seconds, delay * 2)
 
-        return self  # allows chaining
-
     async def disconnect(self) -> None:
         """Disconnect from the remote server."""
         self.logger.info("Disconnecting...")
+        await self._cancel_state_update_task()
+        await self._set_status(RemoteServerStatus.DISCONNECTING)
+
+        aborted = False
+        if self._connect_task is not None and not self._connect_task.done():
+            aborted = True
+            self._disconnect_requested = True
+            self._connect_task.cancel()
+            await asyncio.wait((self._connect_task,))
         try:
             await self._ua_client.disconnect()
+        except Exception:
+            if not aborted:
+                raise
+            self.logger.debug("Ignoring exception while closing aborted connection", exc_info=True)
         finally:
-            await self._cancel_state_update_task()
+            await self._set_status(RemoteServerStatus.DISCONNECTED)
 
     async def _cancel_state_update_task(self) -> None:
         if self._state_update_task is None:
