@@ -63,7 +63,7 @@ class RemoteCallable(RemoteUaObject["BaseRemoteComponent"]):
         for child, browse_name in (await get_children_browse_names(self.ua_node)).items():
             match browse_name.Name:
                 case "MinAccessLevel":
-                    self._min_access_level = await child.read_value()
+                    tasks.append(self._init_min_access_level(child))
                 case "Monitoring":
                     if BrowseFeature.MONITORING in evaluated_browse_features:
                         self.monitoring.ua_node = child
@@ -88,6 +88,9 @@ class RemoteCallable(RemoteUaObject["BaseRemoteComponent"]):
                     tasks.extend(self._init_handle_node(child, browse_name))
 
         await asyncio.gather(*tasks, return_exceptions=True)
+
+    async def _init_min_access_level(self, ua_node: Node) -> None:
+        self._min_access_level = await ua_node.read_value()
 
     @abstractmethod
     def _init_handle_node(self, ua_node: Node, browse_name: ua.QualifiedName) -> list[Awaitable]:
