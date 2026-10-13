@@ -249,6 +249,7 @@ class RemoteServer(BaseServer[RemoteUaObject], UaDataChangeSubscriber):
         self.logger.info("Disconnecting...")
         await self._cancel_state_update_task()
         await self._set_status(RemoteServerStatus.DISCONNECTING)
+        await self.subscription_manager.shutdown()
 
         aborted = False
         if self._connect_task is not None and not self._connect_task.done():
