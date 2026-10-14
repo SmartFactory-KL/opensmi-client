@@ -4,7 +4,6 @@
 
 """Various containers for `RemoteVariable`. The containers themselves are `RemoteUaObject`."""
 
-import asyncio
 from collections.abc import Awaitable, Iterator, Mapping
 from typing import TYPE_CHECKING, Any, Generic, TypeVar
 
@@ -13,6 +12,7 @@ from asyncua.common.node import Node
 from opensmi.core.ua_node_util import get_children_browse_names
 from typing_extensions import override
 
+from opensmi.client.common import gather
 from opensmi.client.dto import RemoteVariableDTO
 from opensmi.client.remote_ua_object import RemoteUaObject
 from opensmi.client.remote_variable import RemoteVariable
@@ -45,12 +45,9 @@ class RemoteVariableContainer(RemoteUaObject[_ParentType], Generic[_ParentType])
             await var.init()
             await var.ua_read_type()
             self._variables[name] = var
-        except Exception:
-            self.logger.warning(
-                "Failed to initialize variable",
-                variable_name=name,
-                ua_node=ua_node.nodeid.to_string(),
-            )
+        except BaseException as err:
+            err.add_note(f"Failed to initialize variable {name} @ {ua_node.nodeid.to_string()}")
+            raise
 
     @override
     async def _init(self) -> None:
@@ -64,7 +61,7 @@ class RemoteVariableContainer(RemoteUaObject[_ParentType], Generic[_ParentType])
             else:
                 tasks.append(self._browse_variable(child, browse_name.Name))
 
-        await asyncio.gather(*tasks, return_exceptions=True)
+        self.init_exceptions.extend(await gather(tasks))
 
     async def read_all(self) -> Mapping[str, Any]:
         """Read all contained variables."""

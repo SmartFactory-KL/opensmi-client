@@ -18,6 +18,7 @@ from opensmi.core.ua_node_util import get_children_browse_names
 from typing_extensions import deprecated, override
 
 from opensmi.client.browse import BrowseFeature, BrowseRule, evaluate_browse_features
+from opensmi.client.common import gather
 from opensmi.client.remote_ua_object import RemoteUaObject
 from opensmi.client.remote_variable_container import (
     FinalResultData,
@@ -87,7 +88,7 @@ class RemoteCallable(RemoteUaObject["BaseRemoteComponent"]):
                 case _:
                     tasks.extend(self._init_handle_node(child, browse_name))
 
-        await asyncio.gather(*tasks, return_exceptions=True)
+        self.init_exceptions.extend(await gather(tasks))
 
     async def _init_min_access_level(self, ua_node: Node) -> None:
         self._min_access_level = await ua_node.read_value()

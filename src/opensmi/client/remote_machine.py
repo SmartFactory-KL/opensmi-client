@@ -16,6 +16,7 @@ from opensmi.core.ua_node_util import get_children_browse_names
 from typing_extensions import override
 
 from opensmi.client.browse import BrowseFeature, BrowseRule
+from opensmi.client.common import gather
 from opensmi.client.dto import RemoteMachineDTO
 from opensmi.client.remote_component import BaseRemoteComponent
 from opensmi.client.remote_user import RemoteUser
@@ -91,7 +92,7 @@ class RemoteMachine(BaseRemoteComponent):
             tasks.append(user.ua_read_type())
             self._users.append(user)
 
-        await asyncio.gather(*tasks, return_exceptions=True)
+        self.init_exceptions.extend(await gather(tasks))
 
     @override
     async def _init_machinery_building_blocks_handle_node(

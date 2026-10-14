@@ -6,7 +6,6 @@
 
 from __future__ import annotations
 
-import asyncio
 import time
 from dataclasses import dataclass
 from datetime import datetime
@@ -21,6 +20,7 @@ from opensmi.core.subscription_manager import UaDataChangeSubscriber
 from opensmi.core.ua_node_util import get_children_browse_names
 from typing_extensions import override
 
+from opensmi.client.common import gather
 from opensmi.client.dto import RemoteLockDTO
 from opensmi.client.remote_server import RemoteServer
 from opensmi.client.remote_ua_object import RemoteUaObject
@@ -295,7 +295,7 @@ class RemoteLock(RemoteUaObject["BaseRemoteComponent"], UaDataChangeSubscriber):
     async def _init(self) -> None:
         await super()._init()
 
-        await asyncio.gather(self._browse(), self._ua_read_max_inactive_lock_time())
+        self.init_exceptions.extend(await gather((self._browse(), self._ua_read_max_inactive_lock_time())))
 
         assert self._ua_nodes
         nodes_to_subscribe = [

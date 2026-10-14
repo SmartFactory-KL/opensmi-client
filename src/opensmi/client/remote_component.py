@@ -22,6 +22,7 @@ from opensmi.core.ua_node_util import get_child_without_ns, get_children_browse_
 from typing_extensions import deprecated, override
 
 from opensmi.client.browse import BrowseFeature, BrowseRule, evaluate_browse_features
+from opensmi.client.common import gather
 from opensmi.client.dto import RemoteComponentDTO
 from opensmi.client.remote_method import RemoteMethod
 from opensmi.client.remote_skill import RemoteSkill
@@ -162,7 +163,7 @@ class BaseRemoteComponent(RemoteUaObject["BaseRemoteComponent"], UaDataChangeSub
                         "Found unsupported node in skill node!", ua_node=str(child.nodeid), browse_name=browse_name
                     )
 
-        await asyncio.gather(*tasks, return_exceptions=True)
+        self.init_exceptions.extend(await gather(tasks))
 
     async def _browse_skill_set(self, ua_node: Node) -> None:
         """Browse all skills in given ``ua_node``."""
@@ -172,14 +173,14 @@ class BaseRemoteComponent(RemoteUaObject["BaseRemoteComponent"], UaDataChangeSub
         for child, browse_name in (await get_children_browse_names(ua_node)).items():
             tasks.append(self._browse_skill(ua_node=child, name=browse_name.Name))
 
-        await asyncio.gather(*tasks, return_exceptions=True)
+        self.init_exceptions.extend(await gather(tasks))
 
     async def _browse_lock(self, ua_node: Node) -> None:
         """Browse a single lock in given ``ua_node``."""
         from opensmi.client.remote_lock import RemoteLock
 
         lock = RemoteLock(ua_node=ua_node, server=self.server, parent=self)
-        await asyncio.gather(lock.init(), lock.ua_read_type(), return_exceptions=True)
+        self.init_exceptions.extend(await gather((lock.init(), lock.ua_read_type())))
         self._lock = lock
 
     async def _browse_component(self, ua_node: Node, *, name: str) -> None:
@@ -206,19 +207,15 @@ class BaseRemoteComponent(RemoteUaObject["BaseRemoteComponent"], UaDataChangeSub
             await component.init()
 
             self.components[name] = component
-        except Exception:
-            self.logger.warning(
-                "Failed to initialize component",
-                component_name=name,
-                ua_node=ua_node.nodeid.to_string(),
-            )
+        except BaseException as err:
+            err.add_note(f"Failed to initialize component {name} @ {ua_node.nodeid.to_string()}")
+            raise
 
     async def _browse_components(self, ua_node: Node) -> None:
         """Browse all components in given ``ua_node``."""
         children = await get_children_browse_names(ua_node)
-        await asyncio.gather(
-            *(self._browse_component(child, name=browse_name.Name) for child, browse_name in children.items())
-        )
+        tasks = (self._browse_component(child, name=browse_name.Name) for child, browse_name in children.items())
+        self.init_exceptions.extend(await gather(tasks))
 
     async def _browse_resource(self, ua_node: Node, *, name: str) -> None:
         """Browse a single resource in given ``ua_node`` with ``name``."""
@@ -231,19 +228,15 @@ class BaseRemoteComponent(RemoteUaObject["BaseRemoteComponent"], UaDataChangeSub
             await resource.init()
             await resource.ua_read_type()
             self.resources[name] = resource
-        except Exception:
-            self.logger.warning(
-                "Failed to initialize resource",
-                resource_name=name,
-                ua_node=ua_node.nodeid.to_string(),
-            )
+        except BaseException as err:
+            err.add_note(f"Failed to initialize resource {name} @ {ua_node.nodeid.to_string()}")
+            raise
 
     async def _browse_resources(self, ua_node: Node) -> None:
         """Browse all resources in given ``ua_node``."""
         children = await get_children_browse_names(ua_node)
-        await asyncio.gather(
-            *(self._browse_resource(child, name=browse_name.Name) for child, browse_name in children.items())
-        )
+        tasks = (self._browse_resource(child, name=browse_name.Name) for child, browse_name in children.items())
+        self.init_exceptions.extend(await gather(tasks))
 
     async def _init_machinery_building_blocks_handle_node(
         self,
@@ -280,19 +273,15 @@ class BaseRemoteComponent(RemoteUaObject["BaseRemoteComponent"], UaDataChangeSub
             await method.init()
             await method.ua_read_type()
             self.method_set[name] = method
-        except Exception:
-            self.logger.warning(
-                "Failed to initialize method",
-                method_name=name,
-                ua_node=ua_node.nodeid.to_string(),
-            )
+        except BaseException as err:
+            err.add_note(f"Failed to initialize method {name} @ {ua_node.nodeid.to_string()}")
+            raise
 
     async def _browse_methods(self, ua_node: Node) -> None:
         """Browse all methods in given ``ua_node``."""
         children = await get_children_browse_names(ua_node)
-        await asyncio.gather(
-            *(self._browse_method(child, name=browse_name.Name) for child, browse_name in children.items())
-        )
+        tasks = (self._browse_method(child, name=browse_name.Name) for child, browse_name in children.items())
+        self.init_exceptions.extend(await gather(tasks))
 
     async def _setup_notification(self, ua_node: Node) -> None:
         try:
@@ -373,7 +362,7 @@ class BaseRemoteComponent(RemoteUaObject["BaseRemoteComponent"], UaDataChangeSub
                     self.logger.warning("Found unhandled child node!", node_id=child.nodeid.to_string())
 
         tasks.append(self.ua_read_type())
-        await asyncio.gather(*tasks, return_exceptions=True)
+        self.init_exceptions.extend(await gather(tasks))
 
     @override
     async def ua_on_event(self, ua_event: UaEvent) -> None:

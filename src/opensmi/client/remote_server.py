@@ -36,6 +36,7 @@ from opensmi.core.ua_node_util import get_child_without_ns, get_children_browse_
 from typing_extensions import override
 
 from opensmi.client.browse import DEFAULT_BROWSE_RULE, BrowseFeature, BrowseRule, evaluate_browse_features
+from opensmi.client.common import gather
 from opensmi.client.remote_machine import RemoteMachine
 from opensmi.client.remote_ua_object import RemoteUaObject
 
@@ -151,6 +152,9 @@ class RemoteServer(BaseServer[RemoteUaObject], UaDataChangeSubscriber):
         """Fired each time the status of the remote server is changed."""
         self.time_updated = Signal[datetime.datetime]()
         """Fired each time the remote server time updates. Can be used for checking if the connection is alive."""
+
+        self.init_exceptions: list[Exception] = []
+        """EXPERIMENTAL! List of collected exceptions that where not raised during initialization."""
 
     @property
     def browse_rules(self) -> tuple[BrowseRule, ...]:
@@ -383,7 +387,7 @@ class RemoteServer(BaseServer[RemoteUaObject], UaDataChangeSubscriber):
                 )
                 tasks.append(machine.init())
                 self._machines[name] = machine
-        await asyncio.gather(*tasks, return_exceptions=True)
+        self.init_exceptions = await gather(tasks)
 
     @property
     def status(self) -> RemoteServerStatus:

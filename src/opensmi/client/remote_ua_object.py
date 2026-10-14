@@ -55,6 +55,9 @@ class RemoteUaObject(BaseUaObject["RemoteServer"], LifecycleMixin, Generic[_Pare
         else:
             self._browse_rules = tuple(browse_rules)
 
+        self.init_exceptions: list[Exception] = []
+        """EXPERIMENTAL! List of collected exceptions that where not raised during initialization."""
+
     @property
     def browse_rules(self) -> tuple[BrowseRule, ...]:
         """Browse rules for automatically recursively browsing the remote server."""
