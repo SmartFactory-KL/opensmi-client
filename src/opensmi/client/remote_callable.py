@@ -6,7 +6,6 @@
 
 from __future__ import annotations
 
-import asyncio
 from abc import abstractmethod
 from collections.abc import Awaitable, Iterable, Mapping, Sequence
 from typing import TYPE_CHECKING, Any
@@ -89,6 +88,10 @@ class RemoteCallable(RemoteUaObject["BaseRemoteComponent"]):
                     tasks.extend(self._init_handle_node(child, browse_name))
 
         self.init_exceptions.extend(await gather(tasks))
+        subscribers = []
+        for container in (self.monitoring, self.final_result_data, self.parameter_set):
+            subscribers.extend([(var, var.ua_node) for var in container])
+        await self.server.subscription_manager.subscribe_data_change_batch(subscribers)
 
     async def _init_min_access_level(self, ua_node: Node) -> None:
         self._min_access_level = await ua_node.read_value()

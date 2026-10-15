@@ -364,6 +364,12 @@ class BaseRemoteComponent(RemoteUaObject["BaseRemoteComponent"], UaDataChangeSub
         tasks.append(self.ua_read_type())
         self.init_exceptions.extend(await gather(tasks))
 
+        # Batch subscribe to data changes
+        subscribers = []
+        for container in (self.monitoring, self.attributes, self.parameter_set, self.identification):
+            subscribers.extend([(var, var.ua_node) for var in container])
+        await self.server.subscription_manager.subscribe_data_change_batch(subscribers)
+
     @override
     async def ua_on_event(self, ua_event: UaEvent) -> None:
         """Handle "message" event notifications."""

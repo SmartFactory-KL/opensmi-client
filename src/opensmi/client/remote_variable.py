@@ -168,7 +168,8 @@ class RemoteVariable(RemoteUaObject["RemoteVariableContainer"], UaDataChangeSubs
 
         await self.update_from_data_value(value_data_value)
 
-        await self.server.subscription_manager.subscribe_data_change(self, self.ua_node)
+        # done later, batched
+        # await self.server.subscription_manager.subscribe_data_change(self, self.ua_node)
 
     @property
     def is_writable(self) -> bool:
